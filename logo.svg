@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 100" role="img" aria-label="Sofa Scrap">
+  <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#4ee589"/><stop offset="1" stop-color="#8af5b2"/></linearGradient></defs>
+  <g transform="translate(6 8)">
+    <circle cx="42" cy="42" r="36" fill="#0d1a2b" stroke="url(#g)" stroke-width="4"/>
+    <path d="M20 30c9-13 28-14 39-3 8 8 10 20 6 30-5 12-20 20-33 15-14-5-21-20-16-34z" fill="none" stroke="#eef3fa" stroke-width="4"/>
+    <path d="M41 18l7 9-8 7-10-5 2-10zM60 31l-2 12-11 1-5-10 8-8zM27 45l11-2 7 9-6 9-11-4zM52 46l9-2 5 9-8 7-9-8z" fill="#eef3fa"/>
+    <rect x="78" y="44" width="9" height="34" rx="2" fill="url(#g)"/><rect x="92" y="34" width="9" height="44" rx="2" fill="url(#g)"/><rect x="106" y="22" width="9" height="56" rx="2" fill="url(#g)"/>
+    <path d="M77 30c16-13 28-18 43-19" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round"/><path d="M114 7l7 4-6 6" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="135" y="53" font-family="Inter,Arial,sans-serif" font-size="38" font-weight="800" fill="#eef3fa">Sofa <tspan fill="#55e68a">Scrap</tspan></text>
+  <text x="137" y="78" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="600" letter-spacing="2" fill="#8797aa">ANÁLISE QUE GERA ESTRATÉGIA</text>
+</svg>
