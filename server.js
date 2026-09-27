@@ -631,7 +631,9 @@ if(action==='inspect_import' && req.method==='POST'){
       '"ODD_JUSTA_OVER_1_5"','"ODD_JUSTA_UNDER_1_5"','"ODD_JUSTA_OVER_2_5"','"ODD_JUSTA_UNDER_2_5"',
       '"ODD_JUSTA_OVER_3_5"','"ODD_JUSTA_UNDER_3_5"'].join(',');
     let path=`jogos?select=${select}&order=%22DATA%22.asc`;
-    if(temporada&&!/^todos$/i.test(temporada))path+=`&%22TEMPORADA%22=eq.${encodeURIComponent(temporada==='2025'?'72034':temporada)}`;\n    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(dataInicio))path+=`&%22DATA%22=gte.${encodeURIComponent(dataInicio)}`;\n    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(dataFim))path+=`&%22DATA%22=lte.${encodeURIComponent(dataFim)}`;
+    if(temporada&&!/^todos$/i.test(temporada))path+=`&%22TEMPORADA%22=eq.${encodeURIComponent(temporada==='2025'?'72034':temporada)}`;
+    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(dataInicio))path+=`&%22DATA%22=gte.${encodeURIComponent(dataInicio)}`;
+    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(dataFim))path+=`&%22DATA%22=lte.${encodeURIComponent(dataFim)}`;
     if(campeonato&&!/^todos$/i.test(campeonato) && !campeonatosSelecionados.length)path+=`&%22CAMPEONATO%22=eq.${encodeURIComponent(campeonato)}`;
     let data=await getAll(path,1000,50000);
     if(campeonatosSelecionados.length){ const allowed=new Set(campeonatosSelecionados); data=data.filter(j=>allowed.has(String(j.CAMPEONATO||''))); }
