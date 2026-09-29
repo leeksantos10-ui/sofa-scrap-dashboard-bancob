@@ -655,7 +655,7 @@ if(action==='inspect_import' && req.method==='POST'){
       // Usa a RPC oficial em lote: uma chamada HTTP avalia vários jogos.
       // Isso preserva exatamente o motor de avaliar_filtro, mas elimina uma
       // chamada HTTP por jogo.
-      const chunkSize=100;
+      const chunkSize=500;
       for(let i=0;i<data.length;i+=chunkSize){
         const chunk=data.slice(i,i+chunkSize);
         try{
