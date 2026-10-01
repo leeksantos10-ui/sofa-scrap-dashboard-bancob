@@ -563,7 +563,8 @@ if(action==='inspect_import' && req.method==='POST'){
           // Executa o filtro diretamente por jogo. Isso evita depender da função consolidada
           // executar_backtest_detalhado, que pode ter assinatura/RETURNS diferente no Banco B.
           // A função avaliar_filtro já é a função validada do motor de filtros.
-          let path='jogos?select=*&order=%22DATA%22.asc&limit=5000';
+          const btSelect=['id','"DATA"','"CONFRONTO"','"CAMPEONATO"','"TEMPORADA"','"GOLS_CASA_FT"','"GOLS_VISITANTE_FT"',`"${mc.odd}"`].map(encodeURIComponent).join(',');
+          let path=`jogos?select=${btSelect}&order=%22DATA%22.asc&limit=5000`;
           if(cfg.campeonato) path+=`&%22CAMPEONATO%22=eq.${encodeURIComponent(cfg.campeonato)}`;
           if(cfg.temporada) path+=`&%22TEMPORADA%22=eq.${encodeURIComponent(String(cfg.temporada)==='2025'?'72034':cfg.temporada)}`;
           if(cfg.data_inicio) path+=`&%22DATA%22=gte.${encodeURIComponent(cfg.data_inicio)}`;
@@ -609,7 +610,8 @@ if(action==='inspect_import' && req.method==='POST'){
           return res.status(500).json({error:'Não foi possível executar o filtro salvo no backtest. O filtro não foi ignorado.',detail:e.message||String(e)});
         }
       }
-      let path='jogos?select=*&order=%22DATA%22.asc&limit=5000';
+      const btSelect=['id','"DATA"','"CONFRONTO"','"CAMPEONATO"','"TEMPORADA"','"GOLS_CASA_FT"','"GOLS_VISITANTE_FT"',`"${mc.odd}"`].map(encodeURIComponent).join(',');
+      let path=`jogos?select=${btSelect}&order=%22DATA%22.asc&limit=5000`;
       if(cfg.campeonato) path+=`&CAMPEONATO=eq.${encodeURIComponent(cfg.campeonato)}`;
       if(cfg.temporada) path+=`&%22TEMPORADA%22=eq.${encodeURIComponent(String(cfg.temporada)==='2025'?'72034':cfg.temporada)}`;
       const data=await get(path); const rows=data.map(j=>{const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[mc.odd]);if(g===null||h===null||odd===null||odd<=1)return null;const green=mc.win(g,h);return {DATA:j.DATA,CONFRONTO:j.CONFRONTO,CAMPEONATO:j.CAMPEONATO,odd,green,pnl:(green?odd-1:-1)*Number(cfg.stake_fixa||1)};}).filter(Boolean);
