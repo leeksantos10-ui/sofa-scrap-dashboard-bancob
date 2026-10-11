@@ -564,12 +564,12 @@ if(action==='inspect_import' && req.method==='POST'){
           // executar_backtest_detalhado, que pode ter assinatura/RETURNS diferente no Banco B.
           // A função avaliar_filtro já é a função validada do motor de filtros.
           const btSelect=['id','"DATA"','"CONFRONTO"','"CAMPEONATO"','"TEMPORADA"','"GOLS_CASA_FT"','"GOLS_VISITANTE_FT"',`"${mc.odd}"`].map(encodeURIComponent).join(',');
-          let path=`jogos?select=${btSelect}&order=%22DATA%22.asc&limit=5000`;
+          let path=`jogos?select=${btSelect}&order=%22DATA%22.asc`;
           if(cfg.campeonato) path+=`&%22CAMPEONATO%22=eq.${encodeURIComponent(cfg.campeonato)}`;
           if(cfg.temporada) path+=`&%22TEMPORADA%22=eq.${encodeURIComponent(String(cfg.temporada)==='2025'?'72034':cfg.temporada)}`;
           if(cfg.data_inicio) path+=`&%22DATA%22=gte.${encodeURIComponent(cfg.data_inicio)}`;
           if(cfg.data_fim) path+=`&%22DATA%22=lte.${encodeURIComponent(cfg.data_fim)}`;
-          let games=await get(path);
+          let games=await getAll(path,1000,50000);
           const filtroCampeonatos=Array.isArray(filterCheck[0].campeonatos)?filterCheck[0].campeonatos.filter(Boolean):[];
           if(filtroCampeonatos.length){ const allowed=new Set(filtroCampeonatos.map(x=>String(x))); games=games.filter(j=>allowed.has(String(j.CAMPEONATO||''))); }
           const eligible=games.filter(j=>{
