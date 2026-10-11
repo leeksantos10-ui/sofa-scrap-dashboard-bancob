@@ -554,7 +554,7 @@ if(action==='inspect_import' && req.method==='POST'){
     if(action==='backtest'){
       const cfgid=Number(p.config_id); if(!Number.isInteger(cfgid)||cfgid<=0) return res.status(400).json({error:'ID de configuração de backtest inválido.'}); const a=await get(`backtest_config?id=eq.${cfgid}&select=*&limit=1`); const cfg=a[0]||null;
       if(!cfg) return res.status(400).json({error:'Configuração de backtest não encontrada.'});
-      const mercado=cfg.mercado||'OVER_2_5',mc=marketMap[mercado]; if(!mc) return res.status(400).json({error:'Mercado não suportado nesta versão.'});
+      const mercado=cfg.mercado||'OVER_2_5',mc=marketMap[mercado],pnlRef=String(p.pnl_ref||'365').toUpperCase()==='JUSTA'?'JUSTA':'365',oddColumn=pnlRef==='JUSTA'?fairOddMap[mercado]:mc?.odd; if(!mc) return res.status(400).json({error:'Mercado não suportado nesta versão.'});
       if(cfg.filtro_id){
         try{
           const filterCheck=await get(`filtros?id=eq.${Number(cfg.filtro_id)}&select=id,nome,ativo,campeonatos&limit=1`);
@@ -599,7 +599,7 @@ if(action==='inspect_import' && req.method==='POST'){
             chunk.forEach(j=>{if(approvedIds.has(Number(j.id))) approved.push(j)});
           }
           const mapped=approved.map(j=>{
-            const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[mc.odd]);
+            const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[oddColumn]);
             const green=mc.win(g,h);
             return {DATA:j.DATA,CONFRONTO:j.CONFRONTO,CAMPEONATO:j.CAMPEONATO,odd,green,pnl:(green?odd-1:-1)*Number(cfg.stake_fixa||1)};
           });
