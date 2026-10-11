@@ -544,7 +544,9 @@ if(action==='inspect_import' && req.method==='POST'){
       return res.status(200).json({ok:true,config:{...(row||{}),id:configId},config_id:configId});
     }
     if(action==='save_backtest_result' && req.method==='POST'){
-      const body=typeof req.body==='object'&&req.body?req.body:JSON.parse(p.payload||'{}');
+      let body=typeof req.body==='object'&&req.body?req.body:{};
+      if(body.payload && !body.config_id){try{body=JSON.parse(body.payload)}catch{return res.status(400).json({error:'Payload do resultado inválido.'})}}
+      if(!body.config_id && p.payload){try{body=JSON.parse(p.payload)}catch{return res.status(400).json({error:'Payload do resultado inválido.'})}}
       const id=Number(body.config_id||p.config_id||0);
       if(!Number.isInteger(id)||id<=0)return res.status(400).json({error:'ID de backtest inválido.'});
       const current=await get(`backtest_config?id=eq.${id}&select=id&limit=1`);
