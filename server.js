@@ -528,7 +528,7 @@ if(action==='inspect_import' && req.method==='POST'){
         odd_minima:body.odd_minima===null||body.odd_minima===undefined||body.odd_minima===''?null:Number(body.odd_minima),
         odd_maxima:body.odd_maxima===null||body.odd_maxima===undefined||body.odd_maxima===''?null:Number(body.odd_maxima),
         edge_minimo_pct:null,data_inicio:body.data_inicio||null,data_fim:body.data_fim||null,
-        campeonato:body.campeonato||null,temporada:body.temporada||null,stake_fixa:Number(body.stake_fixa||1),ativo:true
+        campeonato:body.campeonato||null,campeonatos:Array.isArray(body.campeonatos)?body.campeonatos.map(x=>String(x||'').trim()).filter(Boolean):[],temporada:body.temporada||null,stake_fixa:Number(body.stake_fixa||1),pnl_ref:String(body.pnl_ref||'365'),configuracao_snapshot:body.configuracao_snapshot||body,ativo:true
       };
       const created=await post('backtest_config',payloadRow,'POST','id');
       let row=Array.isArray(created)?created[0]:created;
@@ -541,6 +541,16 @@ if(action==='inspect_import' && req.method==='POST'){
       }
       if(!Number.isInteger(configId)||configId<=0) throw new Error('A configuração foi gravada, mas não consegui localizar o ID gerado no Banco B. O registro existe; a falha é apenas na recuperação do ID.');
       return res.status(200).json({ok:true,config:row});
+    }
+    if(action==='save_backtest_result' && req.method==='POST'){
+      const body=typeof req.body==='object'&&req.body?req.body:JSON.parse(p.payload||'{}');
+      const id=Number(body.config_id||p.config_id||0);
+      if(!Number.isInteger(id)||id<=0)return res.status(400).json({error:'ID de backtest inválido.'});
+      const current=await get(`backtest_config?id=eq.${id}&select=id&limit=1`);
+      if(!current[0])return res.status(404).json({error:'Execução não encontrada.'});
+      const patch={resultado:body.resultado||null,pnl_ref:String(body.pnl_ref||'365'),configuracao_snapshot:body.configuracao_snapshot||null};
+      await post(`backtest_config?id=eq.${id}`,patch,'PATCH');
+      return res.status(200).json({ok:true});
     }
     if(action==='delete_backtest_config'){
       const id=Number(p.id||0);
