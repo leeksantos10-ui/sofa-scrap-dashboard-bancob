@@ -552,6 +552,15 @@ if(action==='inspect_import' && req.method==='POST'){
       await post(`backtest_config?id=eq.${id}`,patch,'PATCH');
       return res.status(200).json({ok:true});
     }
+    if(action==='save_backtest_result'){
+      const body=JSON.parse(p.payload||'{}');
+      const id=Number(body.config_id||0);
+      if(!Number.isInteger(id)||id<=0)return res.status(400).json({error:'ID de backtest inválido.'});
+      const current=await get(`backtest_config?id=eq.${id}&select=id&limit=1`);
+      if(!current[0])return res.status(404).json({error:'Execução não encontrada.'});
+      await post(`backtest_config?id=eq.${id}`,{resultado:body.resultado||null,pnl_ref:String(body.pnl_ref||'365'),configuracao_snapshot:body.configuracao_snapshot||null},'PATCH');
+      return res.status(200).json({ok:true});
+    }
     if(action==='delete_backtest_config'){
       const id=Number(p.id||0);
       if(!Number.isInteger(id)||id<=0) return res.status(400).json({error:'ID da configuração inválido.'});
@@ -582,6 +591,7 @@ if(action==='inspect_import' && req.method==='POST'){
           let games=await getAll(path,1000,50000);
           const filtroCampeonatos=Array.isArray(filterCheck[0].campeonatos)?filterCheck[0].campeonatos.filter(Boolean):[];
           if(filtroCampeonatos.length){ const allowed=new Set(filtroCampeonatos.map(x=>String(x))); games=games.filter(j=>allowed.has(String(j.CAMPEONATO||''))); }
+          const chosen=Array.isArray(cfg.campeonatos)?cfg.campeonatos.filter(Boolean):[];if(chosen.length){const allowedChosen=new Set(chosen.map(String));games=games.filter(j=>allowedChosen.has(String(j.CAMPEONATO||'')));}
           const eligible=games.filter(j=>{
             const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[oddColumn]);
             if(g===null||h===null||odd===null||odd<=1)return false;
@@ -624,7 +634,7 @@ if(action==='inspect_import' && req.method==='POST'){
       let path=`jogos?select=${btSelect}&order=%22DATA%22.asc&limit=5000`;
       if(cfg.campeonato) path+=`&CAMPEONATO=eq.${encodeURIComponent(cfg.campeonato)}`;
       if(cfg.temporada) path+=`&%22TEMPORADA%22=eq.${encodeURIComponent(String(cfg.temporada)==='2025'?'72034':cfg.temporada)}`;
-      const data=await get(path); const rows=data.map(j=>{const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[mc.odd]);if(g===null||h===null||odd===null||odd<=1)return null;const green=mc.win(g,h);return {DATA:j.DATA,CONFRONTO:j.CONFRONTO,CAMPEONATO:j.CAMPEONATO,odd,green,pnl:(green?odd-1:-1)*Number(cfg.stake_fixa||1)};}).filter(Boolean);
+      let data=await get(path);const chosen=Array.isArray(cfg.campeonatos)?cfg.campeonatos.filter(Boolean):[];if(chosen.length){const allowedChosen=new Set(chosen.map(String));data=data.filter(j=>allowedChosen.has(String(j.CAMPEONATO||'')));} const rows=data.map(j=>{const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[mc.odd]);if(g===null||h===null||odd===null||odd<=1)return null;const green=mc.win(g,h);return {DATA:j.DATA,CONFRONTO:j.CONFRONTO,CAMPEONATO:j.CAMPEONATO,odd,green,pnl:(green?odd-1:-1)*Number(cfg.stake_fixa||1)};}).filter(Boolean);
       let cum=0,peak=0,dd=0;const curve=rows.map(r=>{cum+=r.pnl;peak=Math.max(peak,cum);dd=Math.max(dd,peak-cum);return{data:r.DATA,acumulado:cum};});const greens=rows.filter(r=>r.green).length,lucro=rows.reduce((s,r)=>s+r.pnl,0);return res.status(200).json({config:{...cfg,pnl_ref:pnlRef},entries:rows.length,greens,reds:rows.length-greens,winrate:rows.length?greens/rows.length*100:0,oddMedia:rows.length?rows.reduce((s,r)=>s+r.odd,0)/rows.length:0,lucro,roi:rows.length?lucro/(rows.length*Number(cfg.stake_fixa||1))*100:0,drawdown:dd,curve,rows:rows.slice(-50).reverse()});
     }
     const temporada=String(p.temporada||'Todos'), campeonato=String(p.campeonato||'Todos'), dataInicio=String(p.data_inicio||''), dataFim=String(p.data_fim||''), market=String(p.mercado||'OVER_2_5');
