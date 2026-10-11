@@ -584,19 +584,19 @@ if(action==='inspect_import' && req.method==='POST'){
           // uma representação diferente dependendo da versão do PostgREST;
           // para não transformar um filtro válido em zero entradas, usamos
           // a função oficial avaliar_filtro diretamente, em blocos de 20.
-          const chunkSize=20;
+          const chunkSize=500;
           for(let i=0;i<eligible.length;i+=chunkSize){
             const chunk=eligible.slice(i,i+chunkSize);
-            const results=await Promise.all(chunk.map(async j=>{
-              try{
-                const r=await post('rpc/avaliar_filtro',{p_filtro_id:Number(cfg.filtro_id),p_jogo_id:Number(j.id)},'POST');
-                const ok=r===true||r===1||r==='true'||
-                  (Array.isArray(r)&&((r[0]===true)||(r[0]===1)||(r[0]?.avaliar_filtro===true)))||
-                  r?.avaliar_filtro===true||r?.avaliar_filtro===1||r?.avaliar_filtro==='true';
-                return {j,ok};
-              }catch(e){throw new Error(`Falha ao avaliar o filtro no jogo ${j.id}: ${e.message||String(e)}`);}
-            }));
-            results.forEach(x=>{if(x.ok)approved.push(x.j)});
+            const ids=chunk.map(j=>Number(j.id));
+            const r=await post('rpc/avaliar_filtro_lote',{p_filtro_id:Number(cfg.filtro_id),p_jogo_ids:ids},'POST');
+            let resultRows=r;
+            if(typeof resultRows==='string'){try{resultRows=JSON.parse(resultRows)}catch{resultRows=[]}}
+            if(!Array.isArray(resultRows)) resultRows=resultRows?.data||resultRows?.rows||[];
+            const approvedIds=new Set(resultRows.map(x=>{
+              if(typeof x==='number'||typeof x==='string') return Number(x);
+              return Number(x?.jogo_id??x?.id);
+            }).filter(Number.isFinite));
+            chunk.forEach(j=>{if(approvedIds.has(Number(j.id))) approved.push(j)});
           }
           const mapped=approved.map(j=>{
             const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[mc.odd]);
