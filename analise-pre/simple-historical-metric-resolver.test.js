@@ -18,7 +18,7 @@ test('calcula média somente com jogos anteriores e respeita janela',async()=>{
   getMetricConfig:async id=>({...baseConfig,id}),
   fetchHistory:async input=>(args=input,rows)
  });
- assert.equal(await resolve({metricId:1,game}),2);
+ assert.equal(await resolve({metricId:1,game}),2.5);
  assert.equal(args.team,'Time A');
  assert.equal(args.context,'CASA');
  assert.equal(args.beforeDate,'2026-10-10');
@@ -63,7 +63,7 @@ test('bloqueia GERAL, CV, compostas e custo por ponto',async()=>{
 });
 
 test('bloqueia campo inválido e data inválida',async()=>{
- const invalidField=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>({...baseConfig,campo:'DATA;delete'}),fetchHistory:async()=>rows});
+ const invalidField=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>({...baseConfig,campo:'DATA;delete',formula:{tipo:'NORMAL',campo:'DATA;delete'}}),fetchHistory:async()=>rows});
  await assert.rejects(()=>invalidField({metricId:1,game}),/Campo de métrica/);
  const valid=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>baseConfig,fetchHistory:async()=>rows});
  await assert.rejects(()=>valid({metricId:1,game:{...game,data:'ontem'}}),/Data inválida/);
