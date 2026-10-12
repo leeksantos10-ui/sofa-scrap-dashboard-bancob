@@ -15,8 +15,15 @@ Este diretório contém a implementação experimental da Análise Pré. Não al
 
 ## Estado
 
-Estrutura inicial do módulo isolado. A importação e o adaptador de filtros precisam ser implementados e testados antes da integração.
+A branch experimental agora contém uma página dedicada em `/analise-pre`, rotas de API isoladas, importação para `pre_analysis_games` e avaliação sem persistir aprovações. Ainda não está implantada no Render nem mesclada em `main`.
+
+A pipeline verifica a sintaxe do servidor e executa os testes automatizados do módulo. Antes de habilitar na versão principal, ainda é obrigatório fazer teste ponta a ponta em ambiente controlado, validar permissões/credenciais do endpoint e confirmar o comportamento da tabela temporária no ambiente de implantação.
 
 ## Resolver histórico experimental
 
-O módulo `simple-historical-metric-resolver.js` calcula somente médias históricas de métricas simples em contexto CASA/FORA, com janela, data estritamente anterior e amostra mínima. A fonte de dados deve ser injetada como leitura somente de `public.jogos`; o módulo não grava dados. Contexto GERAL, CV, métricas compostas e custo por ponto permanecem bloqueados até validação contra o motor SQL oficial. O resolver ainda não está ligado à API nem ao Render.
+O módulo `simple-historical-metric-resolver.js` calcula somente médias históricas de métricas simples em contexto CASA/FORA, com janela, data estritamente anterior e amostra mínima. A fonte de dados deve ser injetada como leitura somente de `public.jogos`; o módulo não grava dados. Contexto GERAL, CV, métricas compostas e custo por ponto permanecem bloqueados até validação contra o motor SQL oficial. O resolver está ligado à API experimental por `historical-filter-evaluator.js` e `supabase-historical-provider.js`. A API falha de forma segura quando a métrica não é suportada e nunca persiste uma aprovação. O servidor experimental ainda não está implantado no Render.
+
+
+## Validação comparativa com o motor SQL
+
+Em consultas somente leitura no Banco B, a média calculada de forma independente coincidiu com `calcular_metrica_jogo` para 10 configurações ativas CASA/FORA, em 30 partidas recentes por configuração (300 comparações, 0 divergências após respeitar o mínimo de amostra). Para o filtro ativo `Novo over`, a avaliação manual de suas duas condições coincidiu com `avaliar_filtro` em 100 partidas recentes (100/100, 0 divergências). Isso é evidência de validação para esses casos, não prova de todas as métricas/contextos. GERAL, CV, compostas e custo por ponto continuam bloqueados.
