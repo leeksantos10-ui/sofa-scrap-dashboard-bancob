@@ -16,3 +16,7 @@ Este diretório contém a implementação experimental da Análise Pré. Não al
 ## Estado
 
 Estrutura inicial do módulo isolado. A importação e o adaptador de filtros precisam ser implementados e testados antes da integração.
+
+## Resolver histórico experimental
+
+O módulo `simple-historical-metric-resolver.js` calcula somente médias históricas de métricas simples em contexto CASA/FORA, com janela, data estritamente anterior e amostra mínima. A fonte de dados deve ser injetada como leitura somente de `public.jogos`; o módulo não grava dados. Contexto GERAL, CV, métricas compostas e custo por ponto permanecem bloqueados até validação contra o motor SQL oficial. O resolver ainda não está ligado à API nem ao Render.
