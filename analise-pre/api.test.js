@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPreAnalysisApi } from './api.js';
 
-function fixture(overrides={}) {
+function fixture(overrides={}, filterActive=true) {
   const calls=[];
   const games=[{id:7,confronto:'A x B',campeonato:'Liga',status:'pendente'}];
   const store={
@@ -13,7 +13,7 @@ function fixture(overrides={}) {
   };
   const request=async path=> {
     calls.push(path);
-    if(path.startsWith('filtros?')) return [{id:3,nome:'Filtro teste',ativo:true}];
+    if(path.startsWith('filtros?')) return [{id:3,nome:'Filtro teste',ativo:filterActive}];
     if(path.startsWith('filtro_nos?')) return [{id:4,filtro_id:3,tipo:'CONDICAO',metrica_id:9}];
     if(path.startsWith('filtro_condicoes?')) return [{no_id:4,metrica_id:9,operador:'>',valor:1}];
     throw new Error('Rota de leitura não autorizada no teste: '+path);
@@ -53,4 +53,9 @@ test('avaliador só retorna resultado para revisão e não persiste status',asyn
 test('IDs inválidos são recusados',async()=>{
   const {api}=fixture();
   await assert.rejects(()=>api.applySavedFilter('7 OR 1=1',3),/ID inválido/i);
+});
+
+test('filtro inativo não pode ser avaliado',async()=>{
+  const {api}=fixture({api:{evaluateFilter:async()=>({passed:true,reasons:[]})}},false);
+  await assert.rejects(()=>api.applySavedFilter(7,3),/filtro salvo está inativo/i);
 });
