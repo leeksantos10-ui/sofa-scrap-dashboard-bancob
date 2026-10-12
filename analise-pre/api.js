@@ -31,21 +31,28 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
     },
     async listSavedFilters() {
       // Leitura apenas: filtros, nós e condições são consultados, nunca alterados.
-      const [filters, nodes, conditions] = await Promise.all([
+      const [filters, nodes, conditions, relations] = await Promise.all([
         request('filtros?select=id,nome,ativo,campeonatos&order=id.asc&limit=500'),
         request('filtro_nos?select=id,filtro_id,no_pai_id,tipo,operador_logico,ordem,metrica_id,comparador,valor,percentual&order=ordem.asc,id.asc&limit=4000'),
-        request('filtro_condicoes?select=*&limit=4000')
+        request('filtro_condicoes?select=*&limit=4000'),
+        request('filtro_nos_relacoes?select=id,filtro_id,no_pai_id,no_filho_id,ordem&order=ordem.asc,id.asc&limit=4000')
       ]);
-      for (const [name, value] of [['filtros', filters], ['nós', nodes], ['condições', conditions]]) {
+      for (const [name, value] of [['filtros', filters], ['nós', nodes], ['condições', conditions], ['relações', relations]]) {
         if (!Array.isArray(value)) throw new Error('Resposta inválida ao consultar ' + name + ' salvos.');
       }
-      return filters.map(filter => ({
-        ...filter,
-        nos: nodes.filter(node => Number(node.filtro_id) === Number(filter.id)),
-        condicoes: conditions.filter(condition =>
-          nodes.some(node => Number(node.filtro_id) === Number(filter.id) && Number(node.id) === Number(condition.no_id))
-        )
-      }));
+      return filters.map(filter => {
+        const filterNodes = nodes.filter(node => Number(node.filtro_id) === Number(filter.id));
+        const nodeIds = new Set(filterNodes.map(node => Number(node.id)));
+        return {
+          ...filter,
+          nos: filterNodes,
+          condicoes: conditions.filter(condition => nodeIds.has(Number(condition.no_id))),
+          relacoes: relations.filter(relation =>
+            (relation.filtro_id == null || Number(relation.filtro_id) === Number(filter.id)) &&
+            nodeIds.has(Number(relation.no_pai_id)) && nodeIds.has(Number(relation.no_filho_id))
+          )
+        };
+      });
     },
     async applySavedFilter(gameId, filterId) {
       safeId(gameId);
