@@ -40,7 +40,7 @@ export function createSupabaseHistoricalProvider({request}) {
     if(!String(team??'').trim() || !/^\d{4}-\d{2}-\d{2}$/.test(dateOnly(beforeDate))) throw new Error('Equipe ou data inválida para histórico.');
     const n=Number(limit);
     if(!Number.isSafeInteger(n)||n<1||n>100) throw new Error('Limite histórico inválido.');
-    const pattern=String(context).toUpperCase()==='CASA' ? `* x ${team} x *` : `* x ${team}`;
+    const pattern=String(context).toUpperCase()==='CASA' ? `${team} x *` : `* x ${team}`;
     const path='jogos?select='+['id','"DATA"','"CONFRONTO"',`"${field}"`].map(quote).join(',')+
       '&"DATA"=lt.'+quote(dateOnly(beforeDate))+
       '&"CONFRONTO"=like.'+quote(pattern)+
