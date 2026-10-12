@@ -6,6 +6,7 @@ on:
       - feature/analise-pre-isolada
     paths:
       - 'analise-pre/**'
+      - 'server.js'
       - 'package.json'
       - '.github/workflows/analise-pre-tests.yml'
   pull_request:
@@ -24,5 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Check server syntax
+        run: node --check server.js
       - name: Run isolated tests
         run: node --test analise-pre/*.test.js
