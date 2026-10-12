@@ -16,6 +16,7 @@ function fixture(overrides={}, filterActive=true) {
     if(path.startsWith('filtros?')) return [{id:3,nome:'Filtro teste',ativo:filterActive}];
     if(path.startsWith('filtro_nos?')) return [{id:4,filtro_id:3,tipo:'CONDICAO',metrica_id:9}];
     if(path.startsWith('filtro_condicoes?')) return [{no_id:4,metrica_id:9,operador:'>',valor:1}];
+    if(path.startsWith('filtro_nos_relacoes?')) return [];
     throw new Error('Rota de leitura não autorizada no teste: '+path);
   };
   return {api:createPreAnalysisApi({store,request,...overrides.api}),calls,games};
@@ -27,6 +28,7 @@ test('consulta filtros sem executar mutações', async()=>{
   assert.equal(filters[0].nome,'Filtro teste');
   assert.equal(filters[0].nos.length,1);
   assert.equal(filters[0].condicoes.length,1);
+  assert.deepEqual(filters[0].relacoes,[]);
   assert.ok(calls.every(path=>!/(POST|PATCH|DELETE)/i.test(path)));
 });
 
