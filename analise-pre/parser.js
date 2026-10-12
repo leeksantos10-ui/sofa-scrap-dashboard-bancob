@@ -110,15 +110,12 @@ function normalizeGameDate(value) {
 export function validatePreliminaryRows(rows) {
   if(!Array.isArray(rows)||!rows.length) throw new Error('Nenhum jogo válido para importar.');
   if(rows.length>5000) throw new Error('Importe no máximo 5.000 jogos por arquivo.');
-  const seen=new Set(), clean=[];
+  const clean=[];
   for(const [i,row] of rows.entries()){
     const confronto=String(row?.confronto||'').trim();
     if(!confronto) throw new Error('Jogo '+(i+1)+': confronto obrigatório.');
     const campeonato=String(row?.campeonato||'Sem campeonato').trim()||'Sem campeonato';
     const data=normalizeGameDate(row?.data);
-    const key=[norm(campeonato),norm(data||''),norm(confronto)].join('|');
-    if(seen.has(key)) continue;
-    seen.add(key);
     clean.push({
       data, confronto, campeonato,
       temporada:row?.temporada==null?null:String(row.temporada).trim()||null,
