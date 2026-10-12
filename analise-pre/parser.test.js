@@ -7,7 +7,7 @@ test('lê TSV com confronto e odd, preservando dados originais',()=>{
   assert.equal(result.rows.length,1);
   assert.equal(result.rows[0].confronto,'Time A x Time B');
   assert.equal(result.rows[0].campeonato,'Liga X');
-  assert.equal(result.rows[0].odds.ODD_CASA,2.15);
+  assert.equal(result.rows[0].odds.odd_casa,2.15);
   assert.equal(result.rows[0].status,undefined);
 });
 
@@ -42,5 +42,5 @@ test('recusa entrada sem confronto',()=>{
 });
 
 test('recusa arquivo acima do limite',()=>{
-  assert.throws(()=>parsePreliminaryFile('Confronto\n'+Array.from({length:3},(_,i)=>'Jogo '+i).join('\n'),'auto',{maxRows:2}),/excede o limite/i);
+  assert.throws(()=>parsePreliminaryFile('Confronto;Campeonato\n'+Array.from({length:3},(_,i)=>'Jogo '+i+';Liga').join('\n'),'auto',{maxRows:2}),/excede o limite/i);
 });
