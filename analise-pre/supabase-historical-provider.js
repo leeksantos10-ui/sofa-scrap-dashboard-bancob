@@ -42,9 +42,9 @@ export function createSupabaseHistoricalProvider({request}) {
     if(!Number.isSafeInteger(n)||n<1||n>100) throw new Error('Limite histórico inválido.');
     const pattern=String(context).toUpperCase()==='CASA' ? `${team} x *` : `* x ${team}`;
     const path='jogos?select='+['id','"DATA"','"CONFRONTO"',`"${field}"`].map(quote).join(',')+
-      '&"DATA"=lt.'+quote(dateOnly(beforeDate))+
-      '&"CONFRONTO"=like.'+quote(pattern)+
-      '&"'+field+'"=not.is.null&order='+quote('"DATA"')+'.desc,'+quote('id')+'.desc&limit='+n;
+      '&%22DATA%22=lt.'+quote(dateOnly(beforeDate))+
+      '&%22CONFRONTO%22=like.'+quote(pattern)+
+      '&%22'+field+'%22=not.is.null&order='+quote('"DATA"')+'.desc,'+quote('id')+'.desc&limit='+n;
     const result=await request(path);
     if(!Array.isArray(result)) throw new Error('A consulta histórica retornou resposta inválida.');
     return result.filter(row=>{
