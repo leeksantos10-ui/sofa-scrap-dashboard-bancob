@@ -28,5 +28,16 @@ jobs:
           node-version: '20'
       - name: Check server syntax
         run: node --check server.js
+      - name: Smoke test dedicated route
+        run: |
+          PORT=10000 node server.js > /tmp/sofa-scrap.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:10000/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:10000/analise-pre | grep -q 'Análise Pré'
+          curl -fsS http://127.0.0.1:10000/analise-pre/parser.js | grep -q 'parsePreliminaryFile'
       - name: Run isolated tests
         run: node --test analise-pre/*.test.js
