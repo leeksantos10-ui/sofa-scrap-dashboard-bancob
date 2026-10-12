@@ -29,3 +29,14 @@ test('exclusão exige confirmação e campeonato exato',async()=>{
  await store.deleteChampionship('Liga & Copa',true);
  assert.equal(callCount,1);
 });
+
+test('converte rodada numérica e ignora rótulo incompatível com coluna integer',async()=>{
+ let payload;
+ const store=createPreAnalysisStore({request:async(path,options={})=>{payload=options.body;return {ok:true,data:options.body||[]}}});
+ await store.importRows([
+  {confronto:'A x B',campeonato:'Liga',rodada:'12'},
+  {confronto:'C x D',campeonato:'Liga',rodada:'Rodada 13'}
+ ]);
+ assert.equal(payload[0].rodada,12);
+ assert.equal(payload[1].rodada,null);
+});
