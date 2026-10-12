@@ -1,6 +1,6 @@
 /**
  * API de domínio isolada para Análise Pré.
- * Não está conectada ao servidor principal nem ao Render.
+ * Integrada apenas ao servidor da branch experimental; ainda não implantada no Render.
  * O avaliador de filtros é obrigatório; sem ele, a operação falha fechada.
  */
 const safeId = value => {
