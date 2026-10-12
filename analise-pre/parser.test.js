@@ -44,3 +44,13 @@ test('recusa entrada sem confronto',()=>{
 test('recusa arquivo acima do limite',()=>{
   assert.throws(()=>parsePreliminaryFile('Confronto;Campeonato\n'+Array.from({length:3},(_,i)=>'Jogo '+i+';Liga').join('\n'),'auto',{maxRows:2}),/excede o limite/i);
 });
+
+test('normaliza datas brasileiras para ISO e rejeita datas impossíveis',()=>{
+  const rows=validatePreliminaryRows([
+    {data:'12/10/2026',campeonato:'Liga',confronto:'Time A x Time B'},
+    {data:'2026-10-13',campeonato:'Liga',confronto:'Time C x Time D'}
+  ]);
+  assert.equal(rows[0].data,'2026-10-12');
+  assert.equal(rows[1].data,'2026-10-13');
+  assert.throws(()=>validatePreliminaryRows([{data:'31/02/2026',confronto:'Time A x Time B'}]),/Data inválida/);
+});
