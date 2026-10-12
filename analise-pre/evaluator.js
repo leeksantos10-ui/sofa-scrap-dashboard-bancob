@@ -47,9 +47,17 @@ export async function evaluateFilterTree({ game, filter, resolveMetric }) {
   }
   for (const entries of children.values()) entries.sort((a,b)=>a.order-b.order || a.id-b.id);
   const conditionByNode = new Map();
+  // O motor oficial escolhe a condição de maior ID para cada nó (ORDER BY id DESC LIMIT 1).
+  // Não confiar na ordem de retorno do PostgREST, que não é garantida sem order explícito.
   for (const condition of conditions) {
     const key = idOf(condition.no_id);
-    if (nodeById.has(key)) conditionByNode.set(key, condition);
+    if (!nodeById.has(key)) continue;
+    const current = conditionByNode.get(key);
+    const candidateId = Number(condition.id);
+    const currentId = Number(current?.id);
+    if (!current || (Number.isFinite(candidateId) && (!Number.isFinite(currentId) || candidateId > currentId))) {
+      conditionByNode.set(key, condition);
+    }
   }
   const memo = new Map();
   const visiting = new Set();
