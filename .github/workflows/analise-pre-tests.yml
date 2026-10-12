@@ -12,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'analise-pre/**'
+      - 'server.js'
       - 'package.json'
       - '.github/workflows/analise-pre-tests.yml'
 
