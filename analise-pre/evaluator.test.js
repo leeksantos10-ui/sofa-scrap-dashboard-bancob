@@ -38,6 +38,16 @@ test('comparação com outra métrica aplica percentual configurado',async()=>{
  assert.match(result.reasons[0],/11 > 11/);
 });
 
+test('seleciona a condição de maior ID quando um nó tem duplicatas',async()=>{
+ const filter={ativo:true,nos:[leaf(1,10,'>',0)],condicoes:[
+  {id:99,no_id:1,metrica_id:10,operador:'>',valor:100},
+  {id:100,no_id:1,metrica_id:10,operador:'>',valor:1}
+ ]};
+ const result=await evaluateFilterTree({game,filter,resolveMetric:async()=>2});
+ assert.equal(result.passed,true);
+ assert.match(result.reasons[0],/2 > 1/);
+});
+
 test('valor histórico ausente reprova sem inventar valor',async()=>{
  const result=await evaluateFilterTree({
   game,filter:{ativo:true,nos:[leaf(1,10,'>',0)],condicoes:[cond(1,10,'>',0)]},
