@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Análise Pré — Sofa Scrap (experimental)</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,Arial,sans-serif;background:#081321;color:#e8eef7}
+*{box-sizing:border-box}body{margin:0;padding:22px;max-width:1100px;margin-inline:auto}
+header,.panel{background:#0d1a2b;border:1px solid #20344d;border-radius:14px;padding:18px;margin-bottom:14px}
+h1{margin:0 0 6px;font-size:24px}p,.muted{color:#91a2b8;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:grid;gap:7px;color:#b7c5d7;font-size:12px}
+input,select,button{font:inherit;border-radius:9px;padding:10px;border:1px solid #29405a;background:#091522;color:#e8eef7}
+button{cursor:pointer;background:#123425;border-color:#286344;font-weight:650}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.status{padding:10px;border-radius:8px;background:#091522;color:#aebed0;margin-top:12px;white-space:pre-wrap}
+.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:10px;border-bottom:1px solid #20344d;white-space:nowrap}
+@media(max-width:650px){body{padding:12px}.grid{grid-template-columns:1fr}h1{font-size:21px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Análise Pré <span style="color:#55df89">· experimental</span></h1>
+<p>Área de trabalho separada. Os jogos importados aqui não devem ser gravados no histórico definitivo.</p>
+<p><strong>Ambiente de desenvolvimento:</strong> esta página ainda não está conectada ao banco nem publicada.</p>
+</header>
+<section class="panel">
+<h2>1. Importar jogos preliminares</h2>
+<div class="grid">
+<label>Arquivo da rodada (CSV, TSV ou TXT)<input id="file" type="file" accept=".csv,.tsv,.txt"></label>
+<label>Separador<select id="separator"><option value="auto">Detectar automaticamente</option><option value="tab">Tabulação (TSV)</option><option value="comma">Vírgula (CSV)</option><option value="semicolon">Ponto e vírgula</option></select></label>
+</div>
+<div class="row"><button id="preview">Validar e visualizar arquivo</button><button id="clear" type="button">Limpar prévia</button></div>
+<div id="status" class="status" role="status">Selecione um arquivo para validar localmente.</div>
+</section>
+<section class="panel">
+<h2>2. Prévia do arquivo</h2>
+<p class="muted">A validação é local no navegador. Nenhum dado é enviado ou salvo nesta etapa.</p>
+<div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"><tr><td>Sem arquivo validado.</td></tr></tbody></table></div>
+</section>
+<script>
+const fileEl=document.querySelector('#file'), sepEl=document.querySelector('#separator'), statusEl=document.querySelector('#status'), thead=document.querySelector('#thead'), tbody=document.querySelector('#tbody');
+let parsed=[];
+function detect(text){const first=(text.split(/\r?\n/).find(x=>x.trim())||'');const counts=[['tab', (first.match(/\t/g)||[]).length],['semicolon',(first.match(/;/g)||[]).length],['comma',(first.match(/,/g)||[]).length]].sort((a,b)=>b[1]-a[1]);return counts[0][1]?counts[0][0]:'comma'}
+function splitLine(line,sep){if(sep==='tab')return line.split('\t');if(sep==='semicolon')return line.split(';');return line.split(',')}
+document.querySelector('#preview').addEventListener('click',async()=>{
+ const file=fileEl.files?.[0];if(!file){statusEl.textContent='Selecione um arquivo primeiro.';return}
+ try{
+  const text=await file.text();const sep=sepEl.value==='auto'?detect(text):sepEl.value;
+  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
+  if(lines.length<2)throw new Error('O arquivo precisa conter cabeçalho e pelo menos uma linha de jogo.');
+  const headers=splitLine(lines[0],sep).map(x=>x.trim().replace(/^"|"$/g,''));
+  if(headers.length<2)throw new Error('Não consegui identificar as colunas. Confira o separador escolhido.');
+  parsed=lines.slice(1,201).map(line=>splitLine(line,sep).map(x=>x.trim().replace(/^"|"$/g,'')));
+  thead.innerHTML='<tr>'+headers.map(h=>'<th></th>').join('')+'</tr>';
+  [...thead.querySelectorAll('th')].forEach((th,i)=>th.textContent=headers[i]||('Coluna '+(i+1)));
+  tbody.replaceChildren();
+  parsed.slice(0,20).forEach(row=>{const tr=document.createElement('tr');headers.forEach((_,i)=>{const td=document.createElement('td');td.textContent=row[i]||'';tr.appendChild(td)});tbody.appendChild(tr)});
+  statusEl.textContent='Validação local concluída: '+(lines.length-1)+' linhas no arquivo; exibindo até 20 linhas. Nenhum dado foi enviado ao banco. A importação real será habilitada após implementar e testar a API isolada.';
+ }catch(e){parsed=[];statusEl.textContent='Não foi possível validar: '+e.message;thead.replaceChildren();tbody.innerHTML='<tr><td>Arquivo não validado.</td></tr>'}
+});
+document.querySelector('#clear').addEventListener('click',()=>{fileEl.value='';parsed=[];thead.replaceChildren();tbody.innerHTML='<tr><td>Sem arquivo validado.</td></tr>';statusEl.textContent='Prévia limpa. Nenhum dado foi enviado ou salvo.'});
+</script>
+</body>
+</html>
