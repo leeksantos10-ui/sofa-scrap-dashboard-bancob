@@ -34,7 +34,7 @@ export function createPreAnalysisStore({request}) {
           data:row.data||null, confronto,
           campeonato:safeText(row.campeonato||'Sem campeonato')||'Sem campeonato',
           temporada:row.temporada?safeText(row.temporada,80):null,
-          rodada:row.rodada?safeText(row.rodada,80):null,
+          rodada:row.rodada!==null&&row.rodada!==undefined&&String(row.rodada).trim()!==''&&Number.isSafeInteger(Number(row.rodada))?Number(row.rodada):null,
           odds:row.odds&&typeof row.odds==='object'&&!Array.isArray(row.odds)?row.odds:{},
           dados_importados:row.dados_importados&&typeof row.dados_importados==='object'&&!Array.isArray(row.dados_importados)?row.dados_importados:{},
           status:'pendente'
