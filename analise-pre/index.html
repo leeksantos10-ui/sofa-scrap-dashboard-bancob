@@ -40,28 +40,30 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <p class="muted">A validação é local no navegador. Nenhum dado é enviado ou salvo nesta etapa.</p>
 <div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"><tr><td>Sem arquivo validado.</td></tr></tbody></table></div>
 </section>
-<script>
+<script type="module">
+import {parsePreliminaryFile} from './parser.js';
 const fileEl=document.querySelector('#file'), sepEl=document.querySelector('#separator'), statusEl=document.querySelector('#status'), thead=document.querySelector('#thead'), tbody=document.querySelector('#tbody');
 let parsed=[];
-function detect(text){const first=(text.split(/\r?\n/).find(x=>x.trim())||'');const counts=[['tab', (first.match(/\t/g)||[]).length],['semicolon',(first.match(/;/g)||[]).length],['comma',(first.match(/,/g)||[]).length]].sort((a,b)=>b[1]-a[1]);return counts[0][1]?counts[0][0]:'comma'}
-function splitLine(line,sep){if(sep==='tab')return line.split('\t');if(sep==='semicolon')return line.split(';');return line.split(',')}
 document.querySelector('#preview').addEventListener('click',async()=>{
  const file=fileEl.files?.[0];if(!file){statusEl.textContent='Selecione um arquivo primeiro.';return}
  try{
-  const text=await file.text();const sep=sepEl.value==='auto'?detect(text):sepEl.value;
-  const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
-  if(lines.length<2)throw new Error('O arquivo precisa conter cabeçalho e pelo menos uma linha de jogo.');
-  const headers=splitLine(lines[0],sep).map(x=>x.trim().replace(/^"|"$/g,''));
-  if(headers.length<2)throw new Error('Não consegui identificar as colunas. Confira o separador escolhido.');
-  parsed=lines.slice(1,201).map(line=>splitLine(line,sep).map(x=>x.trim().replace(/^"|"$/g,'')));
-  thead.innerHTML='<tr>'+headers.map(h=>'<th></th>').join('')+'</tr>';
-  [...thead.querySelectorAll('th')].forEach((th,i)=>th.textContent=headers[i]||('Coluna '+(i+1)));
+  const text=await file.text();
+  const result=parsePreliminaryFile(text,sepEl.value);
+  parsed=result.rows;
+  thead.replaceChildren();
+  const headRow=document.createElement('tr');
+  result.headers.forEach(h=>{const th=document.createElement('th');th.textContent=h;headRow.appendChild(th)});
+  thead.appendChild(headRow);
   tbody.replaceChildren();
-  parsed.slice(0,20).forEach(row=>{const tr=document.createElement('tr');headers.forEach((_,i)=>{const td=document.createElement('td');td.textContent=row[i]||'';tr.appendChild(td)});tbody.appendChild(tr)});
-  statusEl.textContent='Validação local concluída: '+(lines.length-1)+' linhas no arquivo; exibindo até 20 linhas. Nenhum dado foi enviado ao banco. A importação real será habilitada após implementar e testar a API isolada.';
- }catch(e){parsed=[];statusEl.textContent='Não foi possível validar: '+e.message;thead.replaceChildren();tbody.innerHTML='<tr><td>Arquivo não validado.</td></tr>'}
+  parsed.slice(0,20).forEach(row=>{
+   const tr=document.createElement('tr');
+   result.headers.forEach(key=>{const td=document.createElement('td');td.textContent=String(row.dados_importados[key]??'');tr.appendChild(td)});
+   tbody.appendChild(tr);
+  });
+  statusEl.textContent='Validação local concluída: '+parsed.length+' jogos válidos; '+result.totalLines+' linhas de dados no arquivo; exibindo até 20 jogos. Nenhum dado foi enviado ao banco.';
+ }catch(e){parsed=[];statusEl.textContent='Não foi possível validar: '+e.message;thead.replaceChildren();tbody.replaceChildren();const tr=document.createElement('tr');const td=document.createElement('td');td.textContent='Arquivo não validado.';tr.appendChild(td);tbody.appendChild(tr)}
 });
-document.querySelector('#clear').addEventListener('click',()=>{fileEl.value='';parsed=[];thead.replaceChildren();tbody.innerHTML='<tr><td>Sem arquivo validado.</td></tr>';statusEl.textContent='Prévia limpa. Nenhum dado foi enviado ou salvo.'});
+document.querySelector('#clear').addEventListener('click',()=>{fileEl.value='';parsed=[];thead.replaceChildren();tbody.replaceChildren();const tr=document.createElement('tr');const td=document.createElement('td');td.textContent='Sem arquivo validado.';tr.appendChild(td);tbody.appendChild(tr);statusEl.textContent='Prévia limpa. Nenhum dado foi enviado ou salvo.'});
 </script>
 </body>
 </html>
