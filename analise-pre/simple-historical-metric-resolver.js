@@ -8,6 +8,7 @@
  * GERAL, CV, COMPOSTA e CUSTO_PONTO falham de forma fechada.
  */
 const SAFE_FIELD = /^[A-Z][A-Z0-9_]*$/;
+const ALLOWED_FIELDS = new Set(['GOLS_CASA_FT', 'GOLS_VISITANTE_FT']);
 const asDate = value => {
   const date = String(value ?? '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
@@ -52,7 +53,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       throw new Error('Janela histórica ou amostra mínima inválida.');
     }
     const field = String(config.formula?.campo ?? config.campo ?? '').toUpperCase();
-    if (!SAFE_FIELD.test(field) || !/_CASA$|_VISITANTE$/.test(field)) {
+    if (!SAFE_FIELD.test(field) || (!/_CASA$|_VISITANTE$/.test(field) && !ALLOWED_FIELDS.has(field))) {
       throw new Error('Campo de métrica não permitido para cálculo histórico: ' + field);
     }
     const date = asDate(game.data ?? game.DATA);
