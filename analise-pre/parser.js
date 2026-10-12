@@ -90,6 +90,24 @@ export function parsePreliminaryFile(text, delimiter='auto', options={}) {
   if(!rows.length) throw new Error('Não encontrei jogos válidos no arquivo.');
   return {delimiter:sep,headers,rows,totalLines:lines.length-1,truncated:false};
 }
+function normalizeGameDate(value) {
+  const raw=String(value??'').trim();
+  if(!raw) return null;
+  let match=raw.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})(?:[T ].*)?$/);
+  let year,month,day;
+  if(match){year=Number(match[1]);month=Number(match[2]);day=Number(match[3]);}
+  else {
+    match=raw.match(/^(\\d{1,2})[\\/. -](\\d{1,2})[\\/. -](\\d{4})$/);
+    if(!match) throw new Error('Data inválida: '+raw+'. Use AAAA-MM-DD ou DD/MM/AAAA.');
+    day=Number(match[1]);month=Number(match[2]);year=Number(match[3]);
+  }
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day) {
+    throw new Error('Data inválida: '+raw+'.');
+  }
+  return [String(year).padStart(4,'0'),String(month).padStart(2,'0'),String(day).padStart(2,'0')].join('-');
+}
+
 export function validatePreliminaryRows(rows) {
   if(!Array.isArray(rows)||!rows.length) throw new Error('Nenhum jogo válido para importar.');
   if(rows.length>5000) throw new Error('Importe no máximo 5.000 jogos por arquivo.');
@@ -98,7 +116,7 @@ export function validatePreliminaryRows(rows) {
     const confronto=String(row?.confronto||'').trim();
     if(!confronto) throw new Error('Jogo '+(i+1)+': confronto obrigatório.');
     const campeonato=String(row?.campeonato||'Sem campeonato').trim()||'Sem campeonato';
-    const data=String(row?.data||'').trim()||null;
+    const data=normalizeGameDate(row?.data);
     const key=[norm(campeonato),norm(data||''),norm(confronto)].join('|');
     if(seen.has(key)) continue;
     seen.add(key);
