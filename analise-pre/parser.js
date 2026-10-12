@@ -93,11 +93,11 @@ export function parsePreliminaryFile(text, delimiter='auto', options={}) {
 function normalizeGameDate(value) {
   const raw=String(value??'').trim();
   if(!raw) return null;
-  let match=raw.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})(?:[T ].*)?$/);
+  let match=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/);
   let year,month,day;
   if(match){year=Number(match[1]);month=Number(match[2]);day=Number(match[3]);}
   else {
-    match=raw.match(/^(\\d{1,2})[\\/. -](\\d{1,2})[\\/. -](\\d{4})$/);
+    match=raw.match(/^(\d{1,2})[\/. -](\d{1,2})[\/. -](\d{4})$/);
     if(!match) throw new Error('Data inválida: '+raw+'. Use AAAA-MM-DD ou DD/MM/AAAA.');
     day=Number(match[1]);month=Number(match[2]);year=Number(match[3]);
   }
@@ -107,7 +107,6 @@ function normalizeGameDate(value) {
   }
   return [String(year).padStart(4,'0'),String(month).padStart(2,'0'),String(day).padStart(2,'0')].join('-');
 }
-
 export function validatePreliminaryRows(rows) {
   if(!Array.isArray(rows)||!rows.length) throw new Error('Nenhum jogo válido para importar.');
   if(rows.length>5000) throw new Error('Importe no máximo 5.000 jogos por arquivo.');
