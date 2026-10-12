@@ -59,6 +59,7 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
       const filters = await this.listSavedFilters();
       const filter = filters.find(item => Number(item.id) === fid);
       if (!filter) throw new Error('Filtro salvo não encontrado.');
+      if (filter.ativo === false) throw new Error('Filtro salvo está inativo; a avaliação foi bloqueada.');
       // O avaliador recebe o jogo preliminar, o filtro e acesso explicitamente somente leitura.
       const result = await evaluateFilter({ game, filter, readOnlyRequest: request });
       if (!result || typeof result.passed !== 'boolean' || !Array.isArray(result.reasons)) {
