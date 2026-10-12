@@ -63,8 +63,8 @@ test('bloqueia GERAL, CV, compostas e custo por ponto',async()=>{
 });
 
 test('bloqueia campo inválido e data inválida',async()=>{
- const resolve=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>({...baseConfig,campo:'DATA;delete'}),fetchHistory:async()=>rows});
- await assert.rejects(()=>resolve({metricId:1,game}),/Campo de métrica/);
+ const invalidField=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>({...baseConfig,campo:'DATA;delete'}),fetchHistory:async()=>rows});
+ await assert.rejects(()=>invalidField({metricId:1,game}),/Campo de métrica/);
  const valid=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>baseConfig,fetchHistory:async()=>rows});
  await assert.rejects(()=>valid({metricId:1,game:{...game,data:'ontem'}}),/Data inválida/);
 });
