@@ -1,11 +1,11 @@
 /**
  * Resolver experimental de métricas históricas simples.
  *
- * Só implementa MEDIA para contextos CASA/FORA com campos numéricos explícitos.
+ * Implementa MEDIA e CV para contextos CASA/FORA com campos numéricos explícitos.
  * A fonte de histórico é injetada; deve retornar jogos da mesma equipe e mesmo
  * contexto, estritamente anteriores à data da partida preliminar, em ordem
  * DATA DESC. Não consulta nem grava a tabela de jogos preliminares.
- * GERAL, CV, COMPOSTA e CUSTO_PONTO falham de forma fechada.
+ * GERAL, COMPOSTA e CUSTO_PONTO continuam bloqueados.
  */
 const SAFE_FIELD = /^[A-Z][A-Z0-9_]*$/;
 const ALLOWED_FIELDS = new Set(['GOLS_CASA_FT', 'GOLS_VISITANTE_FT']);
@@ -43,7 +43,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
     }
     const context = String(config.contexto ?? '').toUpperCase();
     const operation = String(config.operacao ?? '').toUpperCase();
-    if (!['CASA', 'FORA'].includes(context) || operation !== 'MEDIA') {
+    if (!['CASA', 'FORA'].includes(context) || !['MEDIA', 'CV'].includes(operation)) {
       throw new Error('Contexto/operação não suportado com segurança: ' + context + '/' + operation);
     }
     const windowSize = Number(config.janela_jogos);
@@ -79,6 +79,10 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       .slice(0, windowSize);
     if (eligible.length < minimum) return null;
     const values = eligible.map(row => Number(row[historicalField] ?? row[historicalField.toLowerCase()]));
-    return values.reduce((sum, value) => sum + value, 0) / values.length;
+    const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+    if (operation === 'MEDIA') return mean;
+    if (mean === 0) throw new Error('CV histórico indefinido: média igual a zero.');
+    const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+    return Math.sqrt(variance) / Math.abs(mean) * 100;
   };
 }
