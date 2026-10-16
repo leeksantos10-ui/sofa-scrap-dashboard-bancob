@@ -72,8 +72,10 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
       if (!result || typeof result.passed !== 'boolean' || !Array.isArray(result.reasons)) {
         throw new Error('O avaliador retornou um resultado inválido; jogo mantido como pendente.');
       }
-      // Esta camada não altera status no banco. Só devolve o resultado para revisão.
-      return { gameId: Number(gameId), filterId: fid, passed: result.passed, reasons: result.reasons, persisted: false };
+      // Guarda apenas o resultado da Análise Pré dentro do JSON já existente da tabela temporária.
+      // Os dados importados originais são preservados; a tabela definitiva jogos nunca é escrita.
+      await store.saveEvaluation(game, fid, result);
+      return { gameId: Number(gameId), filterId: fid, passed: result.passed, reasons: result.reasons, persisted: true };
     }
   });
 }
