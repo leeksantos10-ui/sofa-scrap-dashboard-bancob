@@ -90,7 +90,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       }
       const rawPreRequest = async (path, options = {}) => {
         const method = String(options.method || 'GET').toUpperCase();
-        if (!['GET','POST','DELETE'].includes(method)) throw new Error('Método bloqueado no armazenamento da Análise Pré.');
+        if (!['GET','POST','PATCH','DELETE'].includes(method)) throw new Error('Método bloqueado no armazenamento da Análise Pré.');
         if (method !== 'GET' && !/^pre_analysis_games(?:\\?|$)/.test(String(path))) {
           throw new Error('Bloqueio de segurança: escrita permitida somente em pre_analysis_games.');
         }
