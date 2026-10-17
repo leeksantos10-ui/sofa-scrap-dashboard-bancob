@@ -29,6 +29,8 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
     async deleteChampionship(name, confirmed) {
       return store.deleteChampionship(name, confirmed === true);
     },
+    async deleteDay(day, confirmed) { return store.deleteDay(day, confirmed === true); },
+    async removeDuplicates(confirmed) { return store.removeDuplicates(confirmed === true); },
     async listSavedFilters() {
       // Leitura apenas: filtros, nós e condições são consultados, nunca alterados.
       const [filters, nodes, conditions, relations] = await Promise.all([
