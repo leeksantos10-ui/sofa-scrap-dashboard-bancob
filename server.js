@@ -81,6 +81,8 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         pre_analysis_filters: 'GET',
         pre_analysis_import: 'POST',
         pre_analysis_delete_championship: 'POST',
+        pre_analysis_delete_day: 'POST',
+        pre_analysis_remove_duplicates: 'POST',
         pre_analysis_apply_filter: 'POST'
       };
       const expectedMethod = allowedMethods[action];
@@ -121,6 +123,8 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         if (action === 'pre_analysis_filters') return res.status(200).json(await preApi.listSavedFilters());
         if (action === 'pre_analysis_import') return res.status(200).json(await preApi.importGames(p.rows,p.confirmed === true));
         if (action === 'pre_analysis_delete_championship') return res.status(200).json(await preApi.deleteChampionship(p.championship,p.confirmed === true));
+        if (action === 'pre_analysis_delete_day') return res.status(200).json(await preApi.deleteDay(p.day,p.confirmed === true));
+        if (action === 'pre_analysis_remove_duplicates') return res.status(200).json(await preApi.removeDuplicates(p.confirmed === true));
         if (action === 'pre_analysis_apply_filter') return res.status(200).json(await preApi.applySavedFilter(p.gameId,p.filterId));
       } catch (error) {
         return res.status(400).json({error:error?.message || String(error)});
