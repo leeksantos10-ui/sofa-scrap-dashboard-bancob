@@ -7,6 +7,8 @@ const TABLE='pre_analysis_games';
 const MAX_BATCH=250;
 const MAX_TOTAL=5000;
 const safeText=(value,max=300)=>String(value??'').trim().slice(0,max);
+const normalizePart=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ').replace(/\s*(?:vs?\.?|x|–|—)\s*/g,' x ');
+const gameKey=g=>[g.data,g.campeonato,g.temporada,g.rodada,normalizePart(g.confronto)].map(v=>String(v??'').trim().toLowerCase()).join('|');
 
 export function createPreAnalysisStore({request}) {
   if(typeof request!=='function') throw new TypeError('É necessário injetar uma função request para o banco.');
@@ -40,13 +42,31 @@ export function createPreAnalysisStore({request}) {
           status:'pendente'
         };
       });
+      const existing=await this.list();
+      const seen=new Set(existing.map(gameKey));
+      const unique=[];let skipped=0;
+      for(const row of payload){const key=gameKey(row);if(seen.has(key)){skipped++;continue}seen.add(key);unique.push(row)}
       let inserted=0;
-      for(let i=0;i<payload.length;i+=MAX_BATCH) {
-        const batch=payload.slice(i,i+MAX_BATCH);
+      for(let i=0;i<unique.length;i+=MAX_BATCH) {
+        const batch=unique.slice(i,i+MAX_BATCH);
         const data=await call(TABLE,{method:'POST',body:batch,prefer:'return=representation'});
         inserted+=Array.isArray(data)?data.length:batch.length;
       }
-      return {inserted};
+      return {inserted,skipped,received:payload.length};
+    },
+    async deleteDay(day,confirmed) {
+      const exact=safeText(day,20);
+      if(!confirmed) throw new Error('Exclusão cancelada: confirme a operação explicitamente.');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(exact)) throw new Error('Informe uma data válida (AAAA-MM-DD).');
+      const data=await call(TABLE+'?data=eq.'+encodeURIComponent(exact),{method:'DELETE',prefer:'return=representation'});
+      return {deleted:Array.isArray(data)?data.length:0,data:exact};
+    },
+    async removeDuplicates(confirmed) {
+      if(!confirmed) throw new Error('Remoção cancelada: confirme a operação explicitamente.');
+      const games=await this.list(),seen=new Set(),ids=[];
+      for(const g of games.slice().sort((a,b)=>Number(a.id)-Number(b.id))){const key=gameKey(g);if(seen.has(key))ids.push(Number(g.id));else seen.add(key)}
+      for(const id of ids) await call(TABLE+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',prefer:'return=minimal'});
+      return {deleted:ids.length,remaining:games.length-ids.length};
     },
     async saveEvaluation(game, filterId, result) {
       const id=Number(game?.id), fid=Number(filterId);
