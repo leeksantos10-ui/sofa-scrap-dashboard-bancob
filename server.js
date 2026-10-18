@@ -372,7 +372,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const oddsFields=[...new Set([marketMap[market].odd,fairOddMap[market],...(FAIR_GROUPS[market]||[]),'GOLS_CASA_FT','GOLS_VISITANTE_FT'].filter(Boolean))];
       const rows=[]; for(let off=0;off<ids.length;off+=100){const batch=ids.slice(off,off+100);const part=await get('jogos?id=in.('+batch.join(',')+')&select=id,DATA,CAMPEONATO,CONFRONTO,'+oddsFields.join(',')+'&order=DATA.asc,id.asc&limit=100');rows.push(...part)}
       let profit=0,fairProfit=0,greens=0,oddSum=0,fairSum=0,oddN=0,fairN=0,peak=0,drawdown=0;const curve=[],monthlyMap={};
-      for(const g of rows){const gh=num(g.GOLS_CASA_FT),ga=num(g.GOLS_VISITANTE_FT);if(gh===null||ga===null)continue;const won=marketMap[market].win(gh,ga),bookOdd=num(g[marketMap[market].odd]),fair=getFairOdd(g,market);const chosen=ref==='365'?bookOdd:fair;if(chosen===null||chosen<=1)continue;
+      for(const g of rows){const gh=num(g.GOLS_CASA_FT),ga=num(g.GOLS_VISITANTE_FT);if(gh===null||ga===null)continue;const won=marketMap[market].win(gh,ga),bookOdd=num(g[marketMap[market].odd]),fairRaw=num(g[fairOddMap[market]]),fair=fairRaw!==null&&fairRaw>1?fairRaw:null;const chosen=ref==='365'?bookOdd:fair;if(chosen===null||chosen<=1)continue;
         const pnl=(won?(chosen-1):-1)*stake;profit+=pnl;if(won)greens++;oddSum+=chosen;oddN++;
         if(fair!==null&&fair>1){fairProfit+=(won?(fair-1):-1)*stake;fairSum+=fair;fairN++}
         peak=Math.max(peak,profit);drawdown=Math.max(drawdown,peak-profit);curve.push({date:g.DATA,value:Number(profit.toFixed(4))});
