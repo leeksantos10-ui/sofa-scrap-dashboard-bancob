@@ -380,7 +380,9 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         const month=String(g.DATA||'').slice(0,7)||'Sem data';const m=monthlyMap[month]||(monthlyMap[month]={month,entries:0,greens:0,profit:0});m.entries++;if(won)m.greens++;m.profit+=pnl
       }
       const monthly=Object.values(monthlyMap).sort((a,b)=>a.month.localeCompare(b.month)).map(m=>({...m,winrate:m.entries?m.greens*100/m.entries:0,roi:m.entries?m.profit/(m.entries*stake)*100:0,profit:Number(m.profit.toFixed(2))}));
-      return res.status(200).json({entries:oddN,winrate:oddN?greens*100/oddN:0,avgOdd:oddN?oddSum/oddN:0,profit:Number(profit.toFixed(2)),roi:oddN?profit/(oddN*stake)*100:0,drawdown:Number((-drawdown).toFixed(2)),avgFairOdd:fairN?fairSum/fairN:0,fairProfit:Number(fairProfit.toFixed(2)),fairRoi:fairN?fairProfit/(fairN*stake)*100:0,curve,monthly,marketLabel:marketMap[market].label,reference:ref});
+      // Keep the drawdown definition identical to Dashboard: peak-to-trough on the chronologically ordered P/L curve, with a negative display sign.
+      let dashboardPeak=0,dashboardDrawdown=0,dashboardCum=0; for(const point of curve){dashboardCum=Number(point.value);dashboardPeak=Math.max(dashboardPeak,dashboardCum);dashboardDrawdown=Math.max(dashboardDrawdown,dashboardPeak-dashboardCum);}
+      return res.status(200).json({entries:oddN,winrate:oddN?greens*100/oddN:0,avgOdd:oddN?oddSum/oddN:0,profit:Number(profit.toFixed(2)),roi:oddN?profit/(oddN*stake)*100:0,drawdown:Number((-dashboardDrawdown).toFixed(2)),avgFairOdd:fairN?fairSum/fairN:0,fairProfit:Number(fairProfit.toFixed(2)),fairRoi:fairN?fairProfit/(fairN*stake)*100:0,curve,monthly,marketLabel:marketMap[market].label,reference:ref});
     }
     if(action==='filter_preview_counts' && req.method==='POST'){
       const conditions=Array.isArray(p.conditions)?p.conditions:[];
