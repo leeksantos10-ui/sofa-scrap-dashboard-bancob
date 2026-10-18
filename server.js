@@ -666,7 +666,7 @@ if(action==='inspect_import' && req.method==='POST'){
           // uma representação diferente dependendo da versão do PostgREST;
           // para não transformar um filtro válido em zero entradas, usamos
           // a função oficial avaliar_filtro diretamente, em blocos de 20.
-          const chunkSize=100;
+          const chunkSize=5000;
           for(let i=0;i<eligible.length;i+=chunkSize){
             const chunk=eligible.slice(i,i+chunkSize);
             const ids=chunk.map(j=>Number(j.id));
@@ -739,7 +739,7 @@ if(action==='inspect_import' && req.method==='POST'){
       // Usa a RPC oficial em lote: uma chamada HTTP avalia vários jogos.
       // Isso preserva exatamente o motor de avaliar_filtro, mas elimina uma
       // chamada HTTP por jogo.
-      const chunkSize=500;
+      const chunkSize=5000;
       for(let i=0;i<data.length;i+=chunkSize){
         const chunk=data.slice(i,i+chunkSize);
         try{
