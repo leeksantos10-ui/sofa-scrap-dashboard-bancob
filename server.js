@@ -364,8 +364,9 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const clean=conditions.map((x,i)=>({index:Number(x.index??i),metrica_id:Number(x.metrica_id),operador:String(x.operador||'>'),valor:x.valor===null||x.valor===undefined||x.valor===''?null:Number(x.valor),metrica_comparada_id:x.metrica_comparada_id?Number(x.metrica_comparada_id):null,contexto:String(x.contexto||'GERAL'),equipe:String(x.equipe||'')}));
       if(clean.some(x=>!Number.isInteger(x.metrica_id)||x.metrica_id<=0||!['>','>=','<','<=','=','<>'].includes(x.operador)||(x.metrica_comparada_id===null&&!Number.isFinite(x.valor))))return res.status(400).json({error:'Há uma condição incompleta ou inválida.'});
       const champs=Array.isArray(p.campeonatos)?p.campeonatos.filter(x=>typeof x==='string'&&x.trim()):[];
-      const idsRaw=await post('rpc/jogos_condicoes_rascunho_ids',{p_condicoes:clean,p_logica:String(p.logica||'E'),p_campeonatos:champs},'POST');
-      const ids=(Array.isArray(idsRaw)?idsRaw:[]).map(x=>Number(x.jogo_id)).filter(Number.isFinite);
+      const idsRaw=await post('rpc/jogos_condicoes_rascunho_ids_json',{p_condicoes:clean,p_logica:String(p.logica||'E'),p_campeonatos:champs},'POST');
+      const idsList=Array.isArray(idsRaw)?idsRaw:(typeof idsRaw==='string'?JSON.parse(idsRaw):[]);
+      const ids=idsList.map(x=>Number(x.jogo_id)).filter(Number.isFinite);
       if(!ids.length)return res.status(200).json({entries:0,winrate:0,avgOdd:0,profit:0,roi:0,drawdown:0,avgFairOdd:0,fairProfit:0,fairRoi:0,curve:[],monthly:[],marketLabel:'',reference:p.referencia||'fair'});
       const market=String(p.mercado||'OVER_2_5'), ref=String(p.referencia||'fair'), stake=Math.max(.01,Math.min(100000,Number(p.stake)||1));
       const allowed=['1X2_CASA','1X2_EMPATE','1X2_VISITANTE','DC_1X','DC_12','DC_X2','DNB_CASA','DNB_VISITANTE','BTTS_SIM','BTTS_NAO','OVER_0_5','UNDER_0_5','OVER_1_5','UNDER_1_5','OVER_2_5','UNDER_2_5','OVER_3_5','UNDER_3_5']; if(!allowed.includes(market))return res.status(400).json({error:'Mercado inválido.'});
