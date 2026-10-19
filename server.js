@@ -387,7 +387,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
     if(action==='filter_metric_cache_batch' && req.method==='POST'){
       const metricId=Number(p.metrica_id), afterId=Number(p.depois_id||0), team=String(p.equipe||'CASA'), ctx=String(p.contexto||'GERAL');
       if(!Number.isInteger(metricId)||metricId<=0)return res.status(400).json({error:'Métrica inválida.'});
-      const result=await post('rpc/preencher_cache_metrica_filtro_lote',{p_metrica_id:metricId,p_equipe:team,p_contexto:ctx,p_limite:500,p_depois_id:afterId},'POST');
+      const result=await post('rpc/preencher_cache_metrica_filtro_lote',{p_metrica_id:metricId,p_equipe:team,p_contexto:ctx,p_limite:50,p_depois_id:afterId},'POST');
       return res.status(200).json(typeof result==='string'?JSON.parse(result):result);
     }
     if(action==='filter_preview_counts' && req.method==='POST'){
