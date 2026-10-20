@@ -626,8 +626,8 @@ if(action==='inspect_import' && req.method==='POST'){
             }
           };
           let failed=null;
-          for(let i=0;i<ids.length;i+=25){
-            const result=await warmChunk(ids.slice(i,i+25));
+          for(let i=0;i<ids.length;i+=100){
+            const result=await warmChunk(ids.slice(i,i+100));
             if(!result.ok){failed=result.erro;break;}
           }
           if(failed)erros.push({filtro_id:Number(f.id),nome:f.nome||'',erro:failed});
