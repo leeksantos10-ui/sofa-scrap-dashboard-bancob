@@ -610,10 +610,30 @@ if(action==='inspect_import' && req.method==='POST'){
       const erros=[];
       for(const f of (filtros||[])){
         try{
-          await post('rpc/preaquecer_cache_filtro_lote',{p_filtro_id:Number(f.id),p_jogo_ids:ids},'POST');
-          processados++;
+          // Aquecimento incremental: lotes menores evitam statement timeout
+          // quando um filtro possui métricas compostas ou histórico pesado.
+          const warmChunk=async(chunk)=>{
+            try{
+              await post('rpc/preaquecer_cache_filtro_lote',{p_filtro_id:Number(f.id),p_jogo_ids:chunk},'POST');
+              return {ok:true};
+            }catch(e){
+              if(chunk.length<=1)return {ok:false,erro:e.message||String(e)};
+              const mid=Math.ceil(chunk.length/2);
+              const left=await warmChunk(chunk.slice(0,mid));
+              const right=await warmChunk(chunk.slice(mid));
+              const failures=[left,right].filter(x=>!x.ok);
+              return failures.length?{ok:false,erro:failures.map(x=>x.erro).join(' | ')}:{ok:true};
+            }
+          };
+          let failed=null;
+          for(let i=0;i<ids.length;i+=25){
+            const result=await warmChunk(ids.slice(i,i+25));
+            if(!result.ok){failed=result.erro;break;}
+          }
+          if(failed)erros.push({filtro_id:Number(f.id),nome:f.nome||'',erro:failed});
+          else processados++;
         }catch(e){
-          erros.push({filtro_id:Number(f.id),nome:f.nome||'',erro:e.message});
+          erros.push({filtro_id:Number(f.id),nome:f.nome||'',erro:e.message||String(e)});
         }
       }
       return res.status(erros.length?207:200).json({ok:erros.length===0,jogos:ids.length,filtros:processados,erros});
