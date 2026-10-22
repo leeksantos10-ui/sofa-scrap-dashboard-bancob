@@ -68,6 +68,26 @@ export function createPreAnalysisStore({request}) {
       for(const id of ids) await call(TABLE+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',prefer:'return=minimal'});
       return {deleted:ids.length,remaining:games.length-ids.length};
     },
+    async clearEvaluationsForDay(day, filterId, confirmed) {
+      const exact=safeText(day,20), fid=Number(filterId);
+      if(!confirmed) throw new Error('Limpeza cancelada: confirme a operação explicitamente.');
+      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(exact)) throw new Error('Informe uma data válida (AAAA-MM-DD).');
+      if(!Number.isSafeInteger(fid)||fid<=0) throw new Error('Selecione um filtro válido.');
+      const games=await this.list();
+      const matches=games.filter(game=>String(game.data||'').slice(0,10)===exact);
+      let cleared=0;
+      for(const game of matches){
+        const imported=game.dados_importados&&typeof game.dados_importados==='object'&&!Array.isArray(game.dados_importados)?game.dados_importados:{};
+        const previous=imported._pre_analysis_evaluations&&typeof imported._pre_analysis_evaluations==='object'?imported._pre_analysis_evaluations:{};
+        if(!Object.prototype.hasOwnProperty.call(previous,String(fid))) continue;
+        const evaluations={...previous}; delete evaluations[String(fid)];
+        const nextImported={...imported};
+        if(Object.keys(evaluations).length) nextImported._pre_analysis_evaluations=evaluations; else delete nextImported._pre_analysis_evaluations;
+        await call(TABLE+'?id=eq.'+encodeURIComponent(game.id),{method:'PATCH',body:{dados_importados:nextImported},prefer:'return=minimal'});
+        cleared++;
+      }
+      return {cleared,data:exact,filterId:fid,matchedGames:matches.length};
+    },
     async saveEvaluation(game, filterId, result) {
       const id=Number(game?.id), fid=Number(filterId);
       if(!Number.isSafeInteger(id)||id<=0||!Number.isSafeInteger(fid)||fid<=0) throw new Error('ID inválido ao salvar avaliação.');
