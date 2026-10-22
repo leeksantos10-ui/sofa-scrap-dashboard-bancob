@@ -85,7 +85,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
         const parts=String(row.CONFRONTO??row.confronto??'').split(' x ');
         const actualTeam=side==='home'?parts[0]?.trim():parts[1]?.trim();
         const raw=row[metricField]??row[metricField.toLowerCase()];
-        return /^\\d{4}-\\d{2}-\\d{2}$/.test(rowDate)&&rowDate<date&&actualTeam===team&&raw!=null&&Number.isFinite(Number(raw));
+        return /^\d{4}-\d{2}-\d{2}$/.test(rowDate)&&rowDate<date&&actualTeam===team&&raw!=null&&Number.isFinite(Number(raw));
       }).sort((x,y)=>String(y.row.DATA??y.row.data).localeCompare(String(x.row.DATA??x.row.data))||Number(y.row.id||0)-Number(x.row.id||0)).slice(0,windowSize);
       values=combined.map(({row,metricField})=>Number(row[metricField]??row[metricField.toLowerCase()]));
     } else {
@@ -97,7 +97,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
         const parts=String(row.CONFRONTO??row.confronto??'').split(' x ');
         const sideTeam=context==='CASA'?parts[0]?.trim():parts[1]?.trim();
         const raw=row[historicalField]??row[historicalField.toLowerCase()];
-        return /^\\d{4}-\\d{2}-\\d{2}$/.test(rowDate)&&rowDate<date&&sideTeam===team&&raw!=null&&Number.isFinite(Number(raw));
+        return /^\d{4}-\d{2}-\d{2}$/.test(rowDate)&&rowDate<date&&sideTeam===team&&raw!=null&&Number.isFinite(Number(raw));
       }).sort((x,y)=>String(y.DATA??y.data).localeCompare(String(x.DATA??x.data))).slice(0,windowSize);
       values=eligible.map(row=>Number(row[historicalField]??row[historicalField.toLowerCase()]));
     }
