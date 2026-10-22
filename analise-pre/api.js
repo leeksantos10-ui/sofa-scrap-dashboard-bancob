@@ -32,26 +32,39 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
     async deleteDay(day, confirmed) { return store.deleteDay(day, confirmed === true); },
     async removeDuplicates(confirmed) { return store.removeDuplicates(confirmed === true); },
     async listSavedFilters() {
-      // Leitura apenas: filtros, nós e condições são consultados, nunca alterados.
-      const [filters, nodes, conditions, relations] = await Promise.all([
-        request('filtros?select=id,nome,ativo,campeonatos&order=id.asc&limit=500'),
-        request('filtro_nos?select=id,filtro_id,no_pai_id,tipo,operador_logico,ordem,metrica_id,comparador,valor,percentual&order=ordem.asc,id.asc&limit=4000'),
-        request('filtro_condicoes?select=*&limit=4000'),
-        request('filtro_nos_relacoes?select=id,filtro_id,no_pai_id,no_filho_id,ordem&order=ordem.asc,id.asc&limit=4000')
+      // Busca primeiro os filtros e depois apenas os registros relacionados a eles.
+      // Evita varrer milhares de nós/condições de todos os filtros em cada abertura.
+      const filters = await request('filtros?select=id,nome,ativo,campeonatos&order=id.asc&limit=500');
+      if (!Array.isArray(filters)) throw new Error('Resposta inválida ao consultar filtros salvos.');
+      if (!filters.length) return [];
+      const ids = filters.map(filter => Number(filter.id)).filter(id => Number.isSafeInteger(id) && id > 0);
+      if (!ids.length) return filters.map(filter => ({ ...filter, nos: [], condicoes: [], relacoes: [] }));
+      const idList = '(' + ids.join(',') + ')';
+      const [nodes, relations] = await Promise.all([
+        request('filtro_nos?select=id,filtro_id,no_pai_id,tipo,operador_logico,ordem,metrica_id,comparador,valor,percentual&filtro_id=in.' + encodeURIComponent(idList) + '&order=ordem.asc,id.asc&limit=10000'),
+        request('filtro_nos_relacoes?select=id,filtro_id,no_pai_id,no_filho_id,ordem&filtro_id=in.' + encodeURIComponent(idList) + '&order=ordem.asc,id.asc&limit=10000')
       ]);
-      for (const [name, value] of [['filtros', filters], ['nós', nodes], ['condições', conditions], ['relações', relations]]) {
-        if (!Array.isArray(value)) throw new Error('Resposta inválida ao consultar ' + name + ' salvos.');
+      if (!Array.isArray(nodes) || !Array.isArray(relations)) {
+        throw new Error('Resposta inválida ao consultar nós ou relações dos filtros.');
+      }
+      const nodeIds = [...new Set(nodes.map(node => Number(node.id)).filter(id => Number.isSafeInteger(id) && id > 0))];
+      let conditions = [];
+      if (nodeIds.length) {
+        const conditionIds = '(' + nodeIds.join(',') + ')';
+        conditions = await request('filtro_condicoes?select=*&no_id=in.' + encodeURIComponent(conditionIds) + '&limit=10000');
+        if (!Array.isArray(conditions)) throw new Error('Resposta inválida ao consultar condições dos filtros.');
       }
       return filters.map(filter => {
         const filterNodes = nodes.filter(node => Number(node.filtro_id) === Number(filter.id));
-        const nodeIds = new Set(filterNodes.map(node => Number(node.id)));
+        const idsForFilter = new Set(filterNodes.map(node => Number(node.id)));
         return {
           ...filter,
           nos: filterNodes,
-          condicoes: conditions.filter(condition => nodeIds.has(Number(condition.no_id))),
+          condicoes: conditions.filter(condition => idsForFilter.has(Number(condition.no_id))),
           relacoes: relations.filter(relation =>
-            (relation.filtro_id == null || Number(relation.filtro_id) === Number(filter.id)) &&
-            nodeIds.has(Number(relation.no_pai_id)) && nodeIds.has(Number(relation.no_filho_id))
+            Number(relation.filtro_id) === Number(filter.id) &&
+            idsForFilter.has(Number(relation.no_pai_id)) &&
+            idsForFilter.has(Number(relation.no_filho_id))
           )
         };
       });
