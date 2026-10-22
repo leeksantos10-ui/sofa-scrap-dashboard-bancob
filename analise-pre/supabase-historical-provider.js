@@ -45,14 +45,27 @@ export function createSupabaseHistoricalProvider({request}) {
       '&%22DATA%22=lt.'+quote(dateOnly(beforeDate))+
       '&%22CONFRONTO%22=ilike.'+quote(pattern)+
       '&%22'+field+'%22=not.is.null&order='+quote('"DATA"')+'.desc,'+quote('id')+'.desc&limit='+n;
-    const result=await request(path);
-    if(!Array.isArray(result)) throw new Error('A consulta histórica retornou resposta inválida.');
-    return result.filter(row=>{
+    const exactTeamRows = rows => rows.filter(row=>{
       const teams=split(row.CONFRONTO);
       const actual=String(context).toUpperCase()==='CASA'?teams?.home:teams?.away;
       return actual===String(team).trim() && dateOnly(row.DATA)<dateOnly(beforeDate) &&
         row[field]!=null && Number.isFinite(Number(row[field]));
     }).sort((a,b)=>dateOnly(b.DATA).localeCompare(dateOnly(a.DATA))||Number(b.id)-Number(a.id)).slice(0,n);
+    const result=await request(path);
+    if(!Array.isArray(result)) throw new Error('A consulta histórica retornou resposta inválida.');
+    let matches=exactTeamRows(result);
+    // If the exact ILIKE query returns too few matches, fall back to a broader
+    // read-only query and match the team locally. This avoids false 'no history'
+    // results caused by punctuation, whitespace, or URL pattern differences.
+    if(matches.length<n){
+      const fallbackPath='jogos?select='+['id','\"DATA\"','\"CONFRONTO\"', '\"'+field+'\"'].map(quote).join(',')+
+        '&%22DATA%22=lt.'+quote(dateOnly(beforeDate))+
+        '&%22'+field+'%22=not.is.null&order='+quote('\"DATA\"')+'.desc,'+quote('id')+'.desc&limit=5000';
+      const fallback=await request(fallbackPath);
+      if(!Array.isArray(fallback)) throw new Error('A consulta histórica alternativa retornou resposta inválida.');
+      matches=exactTeamRows([...result,...fallback]);
+    }
+    return matches
   };
 }
 export const historicalProviderContract=Object.freeze({
