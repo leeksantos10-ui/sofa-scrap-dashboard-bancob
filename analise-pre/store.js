@@ -91,7 +91,11 @@ export function createPreAnalysisStore({request}) {
     async saveEvaluation(game, filterId, result) {
       const id=Number(game?.id), fid=Number(filterId);
       if(!Number.isSafeInteger(id)||id<=0||!Number.isSafeInteger(fid)||fid<=0) throw new Error('ID inválido ao salvar avaliação.');
-      const imported=game.dados_importados&&typeof game.dados_importados==='object'&&!Array.isArray(game.dados_importados)?game.dados_importados:{};
+      // Always merge with the latest persisted JSON, not the possibly stale game object
+      // loaded before another filter's evaluation was saved.
+      const latest=await call(TABLE+'?select=id,dados_importados&id=eq.'+encodeURIComponent(id)+'&limit=1');
+      if(!Array.isArray(latest)||!latest.length) throw new Error('A partida temporária não foi encontrada para salvar a avaliação.');
+      const imported=latest[0].dados_importados&&typeof latest[0].dados_importados==='object'&&!Array.isArray(latest[0].dados_importados)?latest[0].dados_importados:{};
       const previous=imported._pre_analysis_evaluations&&typeof imported._pre_analysis_evaluations==='object'?imported._pre_analysis_evaluations:{};
       const evaluations={...previous,[String(fid)]:{filterId:fid,passed:result.passed,evaluatable:result.evaluatable!==false,filterSignature:result.filterSignature||null,reasons:result.reasons,savedAt:new Date().toISOString()}};
       await call(TABLE+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:{dados_importados:{...imported,_pre_analysis_evaluations:evaluations}},prefer:'return=minimal'});
