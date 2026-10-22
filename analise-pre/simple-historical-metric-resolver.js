@@ -8,7 +8,7 @@
  * GERAL, COMPOSTA e CUSTO_PONTO continuam bloqueados.
  */
 const SAFE_FIELD = /^[A-Z][A-Z0-9_]*$/;
-const ALLOWED_FIELDS = new Set(['GOLS_CASA_FT', 'GOLS_VISITANTE_FT']);
+const ALLOWED_FIELDS = new Set(['GOLS_CASA_FT', 'GOLS_VISITANTE_FT', 'PASSES_CERTOS_CASA', 'PASSES_CERTOS_VISITANTE']);
 const oppositeField = field => field === 'GOLS_CASA_FT' ? 'GOLS_VISITANTE_FT' : field === 'GOLS_VISITANTE_FT' ? 'GOLS_CASA_FT' : field.replace(/_CASA(?=_|$)/, '_VISITANTE').replace(/_VISITANTE(?=_|$)/, '_CASA');
 const asDate = value => {
   const date = String(value ?? '').slice(0, 10);
