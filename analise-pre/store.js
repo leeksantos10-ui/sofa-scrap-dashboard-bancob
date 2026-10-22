@@ -73,7 +73,7 @@ export function createPreAnalysisStore({request}) {
       if(!Number.isSafeInteger(id)||id<=0||!Number.isSafeInteger(fid)||fid<=0) throw new Error('ID inválido ao salvar avaliação.');
       const imported=game.dados_importados&&typeof game.dados_importados==='object'&&!Array.isArray(game.dados_importados)?game.dados_importados:{};
       const previous=imported._pre_analysis_evaluations&&typeof imported._pre_analysis_evaluations==='object'?imported._pre_analysis_evaluations:{};
-      const evaluations={...previous,[String(fid)]:{filterId:fid,passed:result.passed,reasons:result.reasons,savedAt:new Date().toISOString()}};
+      const evaluations={...previous,[String(fid)]:{filterId:fid,passed:result.passed,evaluatable:result.evaluatable!==false,filterSignature:result.filterSignature||null,reasons:result.reasons,savedAt:new Date().toISOString()}};
       await call(TABLE+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:{dados_importados:{...imported,_pre_analysis_evaluations:evaluations}},prefer:'return=minimal'});
       return {persisted:true};
     },
