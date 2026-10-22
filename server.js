@@ -260,7 +260,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         const ys=[...new Set(row.anos)].sort((a,b)=>a-b);
         let ano_temporada=ys.length?String(ys[0]):'—'; if(ys.length>1)ano_temporada=`${ys[0]}/${ys[ys.length-1]}`;
         return {id_temporada:row.id_temporada,campeonato:row.campeonato,ano_temporada,jogos:row.jogos,ultima_importacao:row.ultima_importacao};
-      }).sort((a,b)=>a.campeonato.localeCompare(b.campeonato,'pt-BR')||String(b.ano_temporada).localeCompare(String(a.ano_temporada),'pt-BR'));
+      }).sort((a,b)=>{const da=a.ultima_importacao?new Date(a.ultima_importacao).getTime():0,db=b.ultima_importacao?new Date(b.ultima_importacao).getTime():0;return db-da||b.ano_temporada.localeCompare(a.ano_temporada,'pt-BR')||a.campeonato.localeCompare(b.campeonato,'pt-BR');});
       return res.status(200).json({items});
     }
     if(action==='metrics'){
