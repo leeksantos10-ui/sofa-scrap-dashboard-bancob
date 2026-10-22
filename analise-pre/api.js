@@ -30,6 +30,7 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
       return store.deleteChampionship(name, confirmed === true);
     },
     async deleteDay(day, confirmed) { return store.deleteDay(day, confirmed === true); },
+    async clearEvaluationsForDay(day, filterId, confirmed) { return store.clearEvaluationsForDay(day, filterId, confirmed === true); },
     async removeDuplicates(confirmed) { return store.removeDuplicates(confirmed === true); },
     async listSavedFilters() {
       // Busca primeiro os filtros e depois apenas os registros relacionados a eles.
