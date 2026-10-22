@@ -9,6 +9,7 @@
  */
 const SAFE_FIELD = /^[A-Z][A-Z0-9_]*$/;
 const ALLOWED_FIELDS = new Set(['GOLS_CASA_FT', 'GOLS_VISITANTE_FT']);
+const oppositeField = field => field === 'GOLS_CASA_FT' ? 'GOLS_VISITANTE_FT' : field === 'GOLS_VISITANTE_FT' ? 'GOLS_CASA_FT' : field.replace(/_CASA(?=_|$)/, '_VISITANTE').replace(/_VISITANTE(?=_|$)/, '_CASA');
 const asDate = value => {
   const date = String(value ?? '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
@@ -62,8 +63,9 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
     // somando jogos em casa e fora sem incluir partidas na mesma data/futuras.
     const team = context === 'FORA' || (context === 'GERAL' && /_VISITANTE$/.test(field)) ? teams.away : teams.home;
     const fieldForSide = side => {
-      if (/_CASA$/.test(field)) return side === 'home' ? field : field.replace(/_CASA$/, '_VISITANTE');
-      if (/_VISITANTE$/.test(field)) return side === 'away' ? field : field.replace(/_VISITANTE$/, '_CASA');
+      if (field === 'GOLS_CASA_FT' || field === 'GOLS_VISITANTE_FT') return side === 'home' ? 'GOLS_CASA_FT' : 'GOLS_VISITANTE_FT';
+      if (/_CASA(?:_|$)/.test(field)) return side === 'home' ? field : oppositeField(field);
+      if (/_VISITANTE(?:_|$)/.test(field)) return side === 'away' ? field : oppositeField(field);
       return field;
     };
     let values;
