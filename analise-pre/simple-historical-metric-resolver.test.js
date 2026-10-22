@@ -50,9 +50,8 @@ test('retorna null quando não atinge amostra mínima',async()=>{
  assert.equal(await resolve({metricId:1,game}),null);
 });
 
-test('bloqueia GERAL, CV, compostas e custo por ponto',async()=>{
+test('bloqueia CV, compostas e custo por ponto',async()=>{
  for(const config of [
-  {...baseConfig,contexto:'GERAL'},
   {...baseConfig,operacao:'CV'},
   {...baseConfig,campo:'CUSTO_PONTO',formula:{tipo:'CUSTO_PONTO'}},
   {...baseConfig,formula:{tipo:'COMPOSTA'}}
@@ -60,6 +59,26 @@ test('bloqueia GERAL, CV, compostas e custo por ponto',async()=>{
   const resolve=createSimpleHistoricalMetricResolver({getMetricConfig:async()=>config,fetchHistory:async()=>rows});
   await assert.rejects(()=>resolve({metricId:1,game}),/não validada|não suportado|não permitido/i);
  }
+});
+
+
+test('calcula GERAL combinando jogos em casa e fora e mapeia campos corretamente',async()=>{
+ const config={...baseConfig,campo:'RATING_CASA',contexto:'GERAL',janela_jogos:4,minimo_jogos:3,formula:{tipo:'NORMAL',campo:'RATING_CASA'}};
+ const calls=[];
+ const resolve=createSimpleHistoricalMetricResolver({
+  getMetricConfig:async()=>config,
+  fetchHistory:async input=>{
+   calls.push(input);
+   return input.context==='CASA'
+    ? [{DATA:'2026-10-09',CONFRONTO:'Time A x Time C',RATING_CASA:8},{DATA:'2026-10-08',CONFRONTO:'Time A x Time D',RATING_CASA:6}]
+    : [{DATA:'2026-10-07',CONFRONTO:'Time E x Time A',RATING_VISITANTE:7},{DATA:'2026-10-06',CONFRONTO:'Time F x Time A',RATING_VISITANTE:5}];
+  }
+ });
+ assert.equal(await resolve({metricId:1,game}),6.5);
+ assert.equal(calls.length,2);
+ assert.equal(calls[0].team,'Time A');
+ assert.equal(calls[1].team,'Time A');
+ assert.equal(calls[1].field,'RATING_VISITANTE');
 });
 
 test('bloqueia campo inválido e data inválida',async()=>{
