@@ -69,14 +69,32 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
       const filter = filters.find(item => Number(item.id) === fid);
       if (!filter) throw new Error('Filtro salvo não encontrado.');
       if (filter.ativo === false) throw new Error('Filtro salvo está inativo; a avaliação foi bloqueada.');
-      // O avaliador recebe o jogo preliminar, o filtro e acesso explicitamente somente leitura.
+      // Assinatura estável: reutiliza somente a avaliação feita com a mesma versão do filtro.
+      const stable = value => JSON.stringify(value, (key, item) => {
+        if (item && typeof item === 'object' && !Array.isArray(item)) {
+          return Object.keys(item).sort().reduce((out, k) => (out[k] = item[k], out), {});
+        }
+        return item;
+      });
+      const filterSignature = stable({
+        filtro: { id: filter.id, ativo: filter.ativo, campeonatos: filter.campeonatos },
+        nos: [...filter.nos].sort((x,y)=>Number(x.id)-Number(y.id)),
+        condicoes: [...filter.condicoes].sort((x,y)=>Number(x.id)-Number(y.id)),
+        relacoes: [...filter.relacoes].sort((x,y)=>Number(x.id)-Number(y.id))
+      });
+      const imported = game.dados_importados && typeof game.dados_importados === 'object' ? game.dados_importados : {};
+      const cached = imported._pre_analysis_evaluations && imported._pre_analysis_evaluations[String(fid)];
+      if (cached && cached.filterSignature === filterSignature && typeof cached.passed === 'boolean' && Array.isArray(cached.reasons)) {
+        return { gameId: Number(gameId), filterId: fid, passed: cached.passed, reasons: cached.reasons, persisted: true, cached: true, savedAt: cached.savedAt };
+      }
+      // Se a configuração do filtro mudou, recalcula; se não mudou, usa o resultado persistido.
       const result = await evaluateFilter({ game, filter, readOnlyRequest: request });
       if (!result || typeof result.passed !== 'boolean' || !Array.isArray(result.reasons)) {
         throw new Error('O avaliador retornou um resultado inválido; jogo mantido como pendente.');
       }
       // Guarda apenas o resultado da Análise Pré dentro do JSON já existente da tabela temporária.
       // Os dados importados originais são preservados; a tabela definitiva jogos nunca é escrita.
-      await store.saveEvaluation(game, fid, result);
+      await store.saveEvaluation(game, fid, { ...result, filterSignature });
       return { gameId: Number(gameId), filterId: fid, passed: result.passed, reasons: result.reasons, persisted: true };
     }
   });
