@@ -71,7 +71,7 @@ export function createPreAnalysisStore({request}) {
     async clearEvaluationsForDay(day, filterId, confirmed) {
       const exact=safeText(day,20), fid=Number(filterId);
       if(!confirmed) throw new Error('Limpeza cancelada: confirme a operação explicitamente.');
-      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(exact)) throw new Error('Informe uma data válida (AAAA-MM-DD).');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(exact)) throw new Error('Informe uma data válida (AAAA-MM-DD).');
       if(!Number.isSafeInteger(fid)||fid<=0) throw new Error('Selecione um filtro válido.');
       const games=await this.list();
       const matches=games.filter(game=>String(game.data||'').slice(0,10)===exact);
