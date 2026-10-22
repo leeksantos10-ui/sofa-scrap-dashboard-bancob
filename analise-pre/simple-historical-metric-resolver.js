@@ -34,13 +34,31 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
   if (typeof getMetricConfig !== 'function' || typeof fetchHistory !== 'function') {
     throw new TypeError('Configuração de métrica e fonte histórica somente leitura são obrigatórias.');
   }
-  return async ({ metricId, game }) => {
+  async function resolveOne(metricId, game, stack = new Set()) {
     const id = idOf(metricId);
+    if (stack.has(id)) throw new Error('Ciclo detectado na fórmula da métrica ' + id);
     const config = await getMetricConfig(id);
     if (!config || config.ativa === false) throw new Error('Métrica inexistente ou inativa: ' + id);
     const formulaType = String(config.formula?.tipo ?? '').toUpperCase();
-    if (formulaType === 'COMPOSTA' || String(config.campo).toUpperCase() === 'CUSTO_PONTO') {
-      throw new Error('Métrica composta/custo por ponto ainda não validada; avaliação bloqueada.');
+    if (String(config.campo).toUpperCase() === 'CUSTO_PONTO') {
+      throw new Error('Métrica custo por ponto ainda não validada; avaliação bloqueada.');
+    }
+    if (formulaType === 'COMPOSTA') {
+      const components = Array.isArray(config.formula?.componentes) ? config.formula.componentes : [];
+      if (!components.length || components.length > 20) throw new Error('Fórmula composta sem componentes válidos.');
+      const values = [];
+      for (const component of components) {
+        const componentId = idOf(component.metrica_id ?? component.id);
+        const value = await resolveOne(componentId, game, new Set([...stack, id]));
+        if (value == null || !Number.isFinite(Number(value))) return null;
+        values.push(Number(value));
+      }
+      const compoundOperation = String(config.formula?.operacao ?? config.operacao ?? 'MEDIA').toUpperCase();
+      if (compoundOperation === 'MEDIA' || compoundOperation === 'AVG') return values.reduce((sum, value) => sum + value, 0) / values.length;
+      if (compoundOperation === 'SOMA' || compoundOperation === 'SUM') return values.reduce((sum, value) => sum + value, 0);
+      if (compoundOperation === 'SUBTRACAO') return values.slice(1).reduce((value, item) => value - item, values[0]);
+      if (compoundOperation === 'MULTIPLICACAO') return values.reduce((value, item) => value * item, 1);
+      throw new Error('Operação de métrica composta não suportada: ' + compoundOperation);
     }
     const context = String(config.contexto ?? '').toUpperCase();
     const operation = String(config.operacao ?? '').toUpperCase();
@@ -107,5 +125,6 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
     if (mean === 0) throw new Error('CV histórico indefinido: média igual a zero.');
     const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
     return Math.sqrt(variance) / Math.abs(mean) * 100;
-  };
+  }
+  return ({ metricId, game }) => resolveOne(metricId, game);
 }
