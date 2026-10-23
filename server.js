@@ -759,10 +759,27 @@ if(action==='inspect_import' && req.method==='POST'){
             const r=await post('rpc/avaliar_filtro_lote',{p_filtro_id:Number(cfg.filtro_id),p_jogo_ids:ids},'POST');
             let resultRows=r;
             if(typeof resultRows==='string'){try{resultRows=JSON.parse(resultRows)}catch{resultRows=[]}}
-            if(!Array.isArray(resultRows)) resultRows=resultRows?.data||resultRows?.rows||[];
-            const approvedIds=new Set(resultRows.map(x=>{
-              if(typeof x==='number'||typeof x==='string') return Number(x);
-              return Number(x?.jogo_id??x?.id);
+            // Normaliza a resposta da RPC para não descartar aprovações em respostas encapsuladas.
+            const unwrapRows=value=>{
+              if(Array.isArray(value)) return value;
+              if(value&&typeof value==='object'){
+                for(const key of ['data','rows','result','results','avaliar_filtro_lote']) {
+                  if(value[key]!==undefined) { const rows=unwrapRows(value[key]); if(rows.length) return rows; }
+                }
+                if(value.jogo_id!==undefined||value.id!==undefined||value.approved_ids!==undefined) return [value];
+              }
+              return [];
+            };
+            resultRows=unwrapRows(resultRows);
+            const approvedIds=new Set(resultRows.flatMap(x=>{
+              if(typeof x==='number'||typeof x==='string') return [Number(x)];
+              if(Array.isArray(x)) return x.map(Number);
+              if(x&&typeof x==='object'){
+                const id=x.jogo_id??x.id??x.approved_id;
+                if(id!==undefined&&id!==null) return [Number(id)];
+                if(Array.isArray(x.approved_ids)) return x.approved_ids.map(Number);
+              }
+              return [];
             }).filter(Number.isFinite));
             chunk.forEach(j=>{if(approvedIds.has(Number(j.id))) approved.push(j)});
           }
