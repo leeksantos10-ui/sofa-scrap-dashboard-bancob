@@ -752,7 +752,7 @@ if(action==='inspect_import' && req.method==='POST'){
           // uma representação diferente dependendo da versão do PostgREST;
           // para não transformar um filtro válido em zero entradas, usamos
           // a função oficial avaliar_filtro diretamente, em blocos de 20.
-          const chunkSize=20;
+          const chunkSize=100;
           for(let i=0;i<eligible.length;i+=chunkSize){
             const chunk=eligible.slice(i,i+chunkSize);
             const ids=chunk.map(j=>Number(j.id));
