@@ -737,8 +737,9 @@ if(action==='inspect_import' && req.method==='POST'){
           if(cfg.data_inicio) path+=`&%22DATA%22=gte.${encodeURIComponent(cfg.data_inicio)}`;
           if(cfg.data_fim) path+=`&%22DATA%22=lte.${encodeURIComponent(cfg.data_fim)}`;
           let games=await getAll(path,1000,50000);
-          const filtroCampeonatos=Array.isArray(filterCheck[0].campeonatos)?filterCheck[0].campeonatos.filter(Boolean):[];
-          if(filtroCampeonatos.length){ const allowed=new Set(filtroCampeonatos.map(x=>String(x))); games=games.filter(j=>allowed.has(String(j.CAMPEONATO||''))); }
+          // O recorte de campeonatos do Backtest é definido pela própria configuração
+          // executada. Não intersectar com a lista antiga do filtro salvo: isso pode
+          // zerar o histórico quando o usuário seleciona outros campeonatos no Backtest.
           const chosen=Array.isArray(cfg.campeonatos)?cfg.campeonatos.filter(Boolean):[];if(chosen.length){const allowedChosen=new Set(chosen.map(String));games=games.filter(j=>allowedChosen.has(String(j.CAMPEONATO||'')));}
           const eligible=games.filter(j=>{
             const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[oddColumn]);
