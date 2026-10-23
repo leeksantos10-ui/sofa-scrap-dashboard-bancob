@@ -413,10 +413,10 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
     if(action==='filter_metric_cache_batch' && req.method==='POST'){
       const metricId=Number(p.metrica_id), afterId=Number(p.depois_id||0), team=String(p.equipe||'CASA'), ctx=String(p.contexto||'GERAL');
       if(!Number.isInteger(metricId)||metricId<=0)return res.status(400).json({error:'Métrica inválida.'});
-      // Começa com 500 registros para reduzir viagens ao banco. Se a consulta
+      // Começa com 1000 registros para reduzir viagens ao banco. Se a consulta
       // estourar o timeout, reduz o lote automaticamente para continuar com segurança.
       let result=null, lastError=null;
-      for(const limit of [500,250,125,50,20,1]){
+      for(const limit of [1000,500,250,125,50,20,1]){
         try{
           result=await post('rpc/preencher_cache_metrica_filtro_lote',{p_metrica_id:metricId,p_equipe:team,p_contexto:ctx,p_limite:limit,p_depois_id:afterId},'POST');
           lastError=null; break;
