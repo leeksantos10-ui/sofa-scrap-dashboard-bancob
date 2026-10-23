@@ -413,7 +413,16 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
     if(action==='filter_metric_cache_batch' && req.method==='POST'){
       const metricId=Number(p.metrica_id), afterId=Number(p.depois_id||0), team=String(p.equipe||'CASA'), ctx=String(p.contexto||'GERAL');
       if(!Number.isInteger(metricId)||metricId<=0)return res.status(400).json({error:'Métrica inválida.'});
-      const result=await post('rpc/preencher_cache_metrica_filtro_lote',{p_metrica_id:metricId,p_equipe:team,p_contexto:ctx,p_limite:250,p_depois_id:afterId},'POST');
+      // Começa com 500 registros para reduzir viagens ao banco. Se a consulta
+      // estourar o timeout, reduz o lote automaticamente para continuar com segurança.
+      let result=null, lastError=null;
+      for(const limit of [500,250,125,50,20,1]){
+        try{
+          result=await post('rpc/preencher_cache_metrica_filtro_lote',{p_metrica_id:metricId,p_equipe:team,p_contexto:ctx,p_limite:limit,p_depois_id:afterId},'POST');
+          lastError=null; break;
+        }catch(e){ lastError=e; }
+      }
+      if(lastError) throw lastError;
       return res.status(200).json(typeof result==='string'?JSON.parse(result):result);
     }
     if(action==='filter_preview_counts' && req.method==='POST'){
@@ -652,8 +661,8 @@ if(action==='inspect_import' && req.method==='POST'){
             }
           };
           let failed=null;
-          for(let i=0;i<ids.length;i+=100){
-            const result=await warmChunk(ids.slice(i,i+100));
+          for(let i=0;i<ids.length;i+=500){
+            const result=await warmChunk(ids.slice(i,i+500));
             if(!result.ok){failed=result.erro;break;}
           }
           if(failed)erros.push({filtro_id:Number(f.id),nome:f.nome||'',erro:failed});
