@@ -645,8 +645,7 @@ if(action==='inspect_import' && req.method==='POST'){
       const erros=[];
       for(const f of (filtros||[])){
         try{
-          // Aquecimento incremental: lotes menores evitam statement timeout
-          // quando um filtro possui métricas compostas ou histórico pesado.
+          // Lotes de 500 reduzem chamadas; em caso de timeout, warmChunk divide o lote automaticamente.
           const warmChunk=async(chunk)=>{
             try{
               await post('rpc/preaquecer_cache_filtro_lote',{p_filtro_id:Number(f.id),p_jogo_ids:chunk},'POST');
