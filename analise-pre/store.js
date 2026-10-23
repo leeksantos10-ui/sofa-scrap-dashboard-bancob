@@ -4,7 +4,7 @@
  * não inicializa cliente global e não importa a lógica do Dashboard.
  */
 const TABLE='pre_analysis_games';
-const MAX_BATCH=250;
+const MAX_BATCH=500;
 const MAX_TOTAL=5000;
 const safeText=(value,max=300)=>String(value??'').trim().slice(0,max);
 const normalizePart=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ').replace(/\s*(?:vs?\.?|x|–|—)\s*/g,' x ');
