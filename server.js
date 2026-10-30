@@ -182,6 +182,24 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       ]);
       return {filtro:f[0]||null,nos:n,condicoes:c.filter(x=>n.some(nn=>nn.id===x.no_id)),relacoes:r};
     };
+    const variableStakeMap = async (filterId,games,baseStake=1) => {
+      const fs=await get(`filtros?id=eq.${Number(filterId)}&select=stake_variavel&limit=1`),cfg=fs?.[0]?.stake_variavel;
+      if(!cfg?.enabled)return {enabled:false,stakes:new Map()};
+      const detail=await buildFilter(Number(filterId)),conds=(detail?.condicoes||[]).filter(c=>Number(c.peso_stake)>0);
+      if(!conds.length)return {enabled:false,stakes:new Map()};
+      const score=new Map(games.map(g=>[Number(g.id),0]));
+      for(const c of conds){
+        const metric=await get(`metricas_config?id=eq.${Number(c.metrica_id)}&select=id,equipe&limit=1`);
+        const condition={index:0,metrica_id:Number(c.metrica_id),operador:String(c.operador||'>'),valor:c.valor===null?null:Number(c.valor),metrica_comparada_id:c.metrica_comparada_id?Number(c.metrica_comparada_id):null,contexto:String(c.contexto||'GERAL'),equipe:String(c.equipe||metric?.[0]?.equipe||'')};
+        const raw=await post('rpc/jogos_condicoes_rascunho_ids_json',{p_condicoes:[condition],p_logica:'E',p_campeonatos:[]},'POST');
+        const matches=Array.isArray(raw)?raw:(typeof raw==='string'?JSON.parse(raw):[]);
+        for(const x of matches){const id=Number(x.jogo_id??x.id);if(score.has(id))score.set(id,score.get(id)+Number(c.peso_stake||0));}
+      }
+      const tiers=Array.isArray(cfg.tiers)?cfg.tiers:[];
+      const stakes=new Map();
+      for(const g of games){const pts=score.get(Number(g.id))||0,t=tiers.find(x=>pts>=Number(x.min||0)&&pts<=Number(x.max??999999));stakes.set(Number(g.id),pts>0&&t?Number(t.stake):Number(baseStake||1));}
+      return {enabled:true,stakes};
+    };
     if(action==='db_count') {
       const r=await fetch(`${base}/rest/v1/jogos?select=id&limit=1`,{headers:{...headers,Prefer:'count=exact'},cache:'no-store'});
       if(!r.ok) throw new Error('Não foi possível consultar a quantidade de jogos do Banco B.');
@@ -484,7 +502,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const conds=Array.isArray(body.condicoes)?body.condicoes:[];
       if(!conds.length) return res.status(400).json({error:'O filtro precisa ter pelo menos uma condição.'});
       const campeonatos=Array.isArray(body.campeonatos)?[...new Set(body.campeonatos.map(x=>String(x||'').trim()).filter(Boolean))]:[];
-      await post(`filtros?id=eq.${id}`,{nome,campeonatos:campeonatos.length?campeonatos:null},'PATCH');
+      await post(`filtros?id=eq.${id}`,{nome,campeonatos:campeonatos.length?campeonatos:null,stake_variavel:body.stake_variavel||null},'PATCH');
       // Preserve o ID do filtro. Recriamos apenas nós/condições internas para
       // que backtests e referências existentes continuem apontando para o mesmo filtro.
       await post(`filtro_nos_relacoes?filtro_id=eq.${id}`,{},'DELETE');
@@ -502,7 +520,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         let no=Array.isArray(nrows)?nrows[0]:nrows; let noId=Number(no?.id);
         if(!Number.isInteger(noId)||noId<=0){const recent=await get(`filtro_nos?filtro_id=eq.${id}&no_pai_id=eq.${grupoId}&tipo=eq.CONDICAO&select=id,ordem&order=id.desc&limit=50`);no=(recent||[]).find(x=>Number(x.ordem)===i)||recent?.[0];noId=Number(no?.id);}
         if(!Number.isInteger(noId)||noId<=0) throw new Error(`Não consegui criar a condição ${i+1} do filtro atualizado.`);
-        await post('filtro_condicoes',{no_id:noId,metrica_id:c.metrica_id?Number(c.metrica_id):null,campo:c.campo||null,operador:c.operador||'>',valor:val,percentual:pct,metrica_comparada_id:c.metrica_comparada_id?Number(c.metrica_comparada_id):null,contexto:c.contexto||'CASA',janela:Number(c.janela||5),minimo:Number(c.minimo||3),operacao:c.operacao||'MEDIA'},'POST','id');
+        await post('filtro_condicoes',{no_id:noId,metrica_id:c.metrica_id?Number(c.metrica_id):null,campo:c.campo||null,operador:c.operador||'>',valor:val,percentual:pct,metrica_comparada_id:c.metrica_comparada_id?Number(c.metrica_comparada_id):null,contexto:c.contexto||'CASA',janela:Number(c.janela||5),minimo:Number(c.minimo||3),operacao:c.operacao||'MEDIA',peso_stake:Number(c.peso_stake||0)||null},'POST','id');
         await post('filtro_nos_relacoes',{filtro_id:id,no_pai_id:grupoId,no_filho_id:noId,operador:operador,ordem:i},'POST','id');
       }
       return res.status(200).json({ok:true,filtro:{id,nome,ativo:current[0].ativo,campeonatos}});
@@ -521,7 +539,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       // Não usamos RPC para criação porque algumas versões da função RPC
       // gravavam o registro mas retornavam vazio, deixando o dashboard sem ID.
       const created=await post('filtros',{
-        nome,descricao:body.descricao||'',ativo:true,campeonatos:campeonatos.length?campeonatos:null
+        nome,descricao:body.descricao||'',ativo:true,campeonatos:campeonatos.length?campeonatos:null,stake_variavel:body.stake_variavel||null
       },'POST','id,nome,ativo,campeonatos');
       let filtro=Array.isArray(created)?created[0]:created;
       let filtroId=Number(filtro?.id);
@@ -570,7 +588,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
           no_id:noId,metrica_id:c.metrica_id?Number(c.metrica_id):null,
           campo:c.campo||null,operador:c.operador||'>',valor:val,percentual:pct,metrica_comparada_id:c.metrica_comparada_id?Number(c.metrica_comparada_id):null,
           contexto:c.contexto||'CASA',janela:Number(c.janela||5),minimo:Number(c.minimo||3),
-          operacao:c.operacao||'MEDIA'
+          operacao:c.operacao||'MEDIA',peso_stake:Number(c.peso_stake||0)||null
         },'POST','id');
 
         await post('filtro_nos_relacoes',{
@@ -803,14 +821,14 @@ if(action==='inspect_import' && req.method==='POST'){
             }).filter(Number.isFinite));
             chunk.forEach(j=>{if(approvedIds.has(Number(j.id))) approved.push(j)});
           }
-          const mapped=approved.map(j=>{
+          const variableStake=await variableStakeMap(cfg.filtro_id,approved,Number(cfg.stake_fixa||1));const mapped=approved.map(j=>{
             const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[oddColumn]);
             const green=mc.win(g,h);
-            return {DATA:j.DATA,CONFRONTO:j.CONFRONTO,CAMPEONATO:j.CAMPEONATO,odd,green,pnl:(green?odd-1:-1)*Number(cfg.stake_fixa||1)};
+            const st=variableStake.enabled?(variableStake.stakes.get(Number(j.id))||Number(cfg.stake_fixa||1)):Number(cfg.stake_fixa||1);return {DATA:j.DATA,CONFRONTO:j.CONFRONTO,CAMPEONATO:j.CAMPEONATO,odd,green,stake:st,pnl:(green?odd-1:-1)*st};
           });
           let cum=0,peak=0,dd=0;const curve=mapped.map(r=>{cum+=r.pnl;peak=Math.max(peak,cum);dd=Math.max(dd,peak-cum);return{data:r.DATA,acumulado:cum};});
-          const greens=mapped.filter(r=>r.green).length,lucro=mapped.reduce((s,r)=>s+r.pnl,0),stake=Number(cfg.stake_fixa||1);
-          return res.status(200).json({config:{...cfg,pnl_ref:pnlRef},entries:mapped.length,greens,reds:mapped.length-greens,winrate:mapped.length?greens/mapped.length*100:0,oddMedia:mapped.length?mapped.reduce((s,r)=>s+r.odd,0)/mapped.length:0,lucro,roi:mapped.length?lucro/(mapped.length*stake)*100:0,drawdown:dd,curve,rows:mapped.slice(-50).reverse()});
+          const greens=mapped.filter(r=>r.green).length,lucro=mapped.reduce((s,r)=>s+r.pnl,0),stake=mapped.reduce((s,r)=>s+Number(r.stake||1),0);
+          return res.status(200).json({config:{...cfg,pnl_ref:pnlRef},entries:mapped.length,greens,reds:mapped.length-greens,winrate:mapped.length?greens/mapped.length*100:0,oddMedia:mapped.length?mapped.reduce((s,r)=>s+r.odd,0)/mapped.length:0,lucro,roi:stake?lucro/stake*100:0,stakeTotal:stake,stakeMedia:mapped.length?stake/mapped.length:0,stakeVariavel:variableStake.enabled,drawdown:dd,curve,rows:mapped.slice(-50).reverse()});
         }catch(e){
           return res.status(500).json({error:'Não foi possível executar o filtro salvo no backtest. O filtro não foi ignorado.',detail:e.message||String(e)});
         }
@@ -884,8 +902,8 @@ if(action==='inspect_import' && req.method==='POST'){
     }
     const mc=marketMap[market]||marketMap.OVER_2_5;
     const getRows=m=>data.map(j=>{const g=num(j.GOLS_CASA_FT),h=num(j.GOLS_VISITANTE_FT),odd=num(j[m.odd]);if(g===null||h===null||odd===null||odd<=1)return null;const green=m.win(g,h),marketKey=Object.entries(marketMap).find(([,v])=>v===m)?.[0],fo=marketKey?getFairOdd(j,marketKey):null,primaryOdd=pnlRef==='JUSTA'?fo:odd;if(primaryOdd===null||primaryOdd<=1)return null;return {...j,temporada_label:seasonLabel(j.TEMPORADA),odd:primaryOdd,green,pnl:green?primaryOdd-1:-1,mercado_label:m.label,fairOdd:fo,fairPnlGross:fo===null?null:(green?fo-1:-1),fairPnlNet:fo===null?null:(green?fo-1:-1),pnlOdd:odd,pnlOddJusta:fo,pnlRef};}).filter(Boolean);
-    const rows=getRows(mc);let cum=0,peak=0,dd=0;const curve=rows.map(x=>{cum+=x.pnl;peak=Math.max(peak,cum);dd=Math.max(dd,peak-cum);return{data:x.DATA,confronto:x.CONFRONTO,pnl:x.pnl,acumulado:cum};});
-    const greens=rows.filter(x=>x.green).length,lucro=rows.reduce((s,x)=>s+x.pnl,0),entries=rows.length,calcROI=entries?lucro/entries*100:0;const fairRows=rows.filter(x=>x.fairPnlNet!==null),fairLucro=fairRows.reduce((s,x)=>s+x.fairPnlNet,0),fairROI=entries?fairLucro/entries*100:0;
+    const rows=getRows(mc);const variableStake=selectedFilter?await variableStakeMap(filtroId,data,1):{enabled:false,stakes:new Map()};if(variableStake.enabled)rows.forEach(x=>{const st=variableStake.stakes.get(Number(x.id))||1;x.stake=st;x.pnl=(x.green?x.odd-1:-1)*st;});let cum=0,peak=0,dd=0;const curve=rows.map(x=>{cum+=x.pnl;peak=Math.max(peak,cum);dd=Math.max(dd,peak-cum);return{data:x.DATA,confronto:x.CONFRONTO,pnl:x.pnl,acumulado:cum};});
+    const greens=rows.filter(x=>x.green).length,lucro=rows.reduce((s,x)=>s+x.pnl,0),entries=rows.length,totalStake=rows.reduce((s,x)=>s+Number(x.stake||1),0),calcROI=totalStake?lucro/totalStake*100:0;const fairRows=rows.filter(x=>x.fairPnlNet!==null),fairLucro=fairRows.reduce((s,x)=>s+x.fairPnlNet,0),fairROI=entries?fairLucro/entries*100:0;
     const monthlyMap={};rows.forEach(x=>{const k=String(x.DATA||'').slice(0,7)||'Sem data';(monthlyMap[k]??=[]).push(x);});
     const monthly=Object.entries(monthlyMap).map(([mes,rs])=>{const l=rs.reduce((s,x)=>s+x.pnl,0),g=rs.filter(x=>x.green).length;return{mes,entries:rs.length,greens:g,reds:rs.length-g,winrate:g/rs.length*100,oddMedia:rs.length?rs.reduce((s,x)=>s+x.odd,0)/rs.length:0,lucro:l,roi:l/rs.length*100};});
     const champMap={};rows.forEach(x=>(champMap[x.CAMPEONATO||'Sem campeonato']??=[]).push(x));
@@ -893,7 +911,7 @@ if(action==='inspect_import' && req.method==='POST'){
     const blocks=[]; const blockCount=Math.min(10,rows.length); if(blockCount){const baseSize=Math.floor(rows.length/blockCount),remainder=rows.length%blockCount;let cursor=0;for(let b=0;b<blockCount;b++){const size=baseSize+(b<remainder?1:0),rs=rows.slice(cursor,cursor+size),l=rs.reduce((s,x)=>s+x.pnl,0),g=rs.filter(x=>x.green).length;blocks.push({bloco:b+1,inicio:cursor+1,fim:cursor+rs.length,entries:rs.length,greens:g,reds:rs.length-g,winrate:g/rs.length*100,oddMedia:rs.length?rs.reduce((s,x)=>s+x.odd,0)/rs.length:0,lucro:l,roi:l/rs.length*100});cursor+=size;}}
     const tableRows=rows.map(x=>({DATA:x.DATA,CONFRONTO:x.CONFRONTO,CAMPEONATO:x.CAMPEONATO,mercado_label:x.mercado_label,odd:x.odd,green:x.green,pnl:x.pnl}));
     const markets=Object.entries(marketMap).map(([k,m])=>{const rs=getRows(m),l=rs.reduce((s,x)=>s+x.pnl,0),g=rs.filter(x=>x.green).length,fr=rs.filter(x=>x.fairPnlNet!==null),fl=fr.reduce((s,x)=>s+x.fairPnlNet,0);return{mercado:k,label:m.label,entries:rs.length,greens:g,reds:rs.length-g,winrate:rs.length?g/rs.length*100:0,lucro:l,roi:rs.length?l/rs.length*100:0,oddJustaMedia:fr.length?fr.reduce((s,x)=>s+x.fairOdd,0)/fr.length:null,lucroJustoLiquido:fl,roiJustoLiquido:fr.length?fl/fr.length*100:0};});
-    return res.status(200).json({source:'Supabase Banco B',market,pnlRef,marketLabel:mc.label,filter:selectedFilter?{id:selectedFilter.id,nome:selectedFilter.nome,ativo:selectedFilter.ativo,jogosAprovados:data.length,jogosAntesDoFiltro:rawDashboardGames,jogosComDadosDoMercado:data.filter(j=>num(j[mc.odd])!==null&&num(j[mc.odd])>1).length}:null,entries,greens,reds:entries-greens,winrate:entries?greens/entries*100:0,oddMedia:entries?rows.reduce((s,x)=>s+x.odd,0)/entries:0,lucro,roi:calcROI,drawdown:dd,curve,rows:tableRows,fairOddMedia:fairRows.length?fairRows.reduce((s,x)=>s+x.fairOdd,0)/fairRows.length:null,lucroJustoLiquido:fairLucro,roiJustoLiquido:fairROI,comissaoExchange:commission*100,monthly,championships,blocks,distributions:{green:greens,red:entries-greens},markets,seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)),championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),totalJogosFiltrados:data.length});
+    return res.status(200).json({source:'Supabase Banco B',market,pnlRef,marketLabel:mc.label,filter:selectedFilter?{id:selectedFilter.id,nome:selectedFilter.nome,ativo:selectedFilter.ativo,jogosAprovados:data.length,jogosAntesDoFiltro:rawDashboardGames,jogosComDadosDoMercado:data.filter(j=>num(j[mc.odd])!==null&&num(j[mc.odd])>1).length}:null,entries,greens,reds:entries-greens,winrate:entries?greens/entries*100:0,oddMedia:entries?rows.reduce((s,x)=>s+x.odd,0)/entries:0,lucro,roi:calcROI,stakeTotal:totalStake,stakeMedia:entries?totalStake/entries:0,stakeVariavel:variableStake.enabled,drawdown:dd,curve,rows:tableRows,fairOddMedia:fairRows.length?fairRows.reduce((s,x)=>s+x.fairOdd,0)/fairRows.length:null,lucroJustoLiquido:fairLucro,roiJustoLiquido:fairROI,comissaoExchange:commission*100,monthly,championships,blocks,distributions:{green:greens,red:entries-greens},markets,seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)),championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),totalJogosFiltrados:data.length});
   } catch(e){return res.status(500).json({error:e.message||String(e)});}
 }
 
