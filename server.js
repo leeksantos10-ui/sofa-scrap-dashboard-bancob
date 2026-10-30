@@ -318,8 +318,11 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       ['PCT_DUELOS_GANHOS_CASA','% Duelos ganhos Casa'],['PCT_DUELOS_GANHOS_VISITANTE','% Duelos ganhos Visitante'],
       ['DESARMES_SOFRIDOS_CASA','Desarmes sofridos Casa'],['DESARMES_SOFRIDOS_VISITANTE','Desarmes sofridos Visitante']
       ].map(([campo,nome])=>({campo,nome}));
+      const oddsFields=new Set(["ODD_1X2_CASA","ODD_1X2_EMPATE","ODD_1X2_VISITANTE","ODD_DC_1X","ODD_DC_12","ODD_DC_X2","ODD_DNB_CASA","ODD_DNB_VISITANTE","ODD_BTTS_SIM","ODD_BTTS_NAO","ODD_OVER_0_5","ODD_UNDER_0_5","ODD_OVER_1_5","ODD_UNDER_1_5","ODD_OVER_2_5","ODD_UNDER_2_5","ODD_OVER_3_5","ODD_UNDER_3_5","ODD_JUSTA_1X2_CASA","ODD_JUSTA_1X2_EMPATE","ODD_JUSTA_1X2_VISITANTE","ODD_JUSTA_DC_1X","ODD_JUSTA_DC_12","ODD_JUSTA_DC_X2","ODD_JUSTA_DNB_CASA","ODD_JUSTA_DNB_VISITANTE","ODD_JUSTA_BTTS_SIM","ODD_JUSTA_BTTS_NAO","ODD_JUSTA_OVER_0_5","ODD_JUSTA_UNDER_0_5","ODD_JUSTA_OVER_1_5","ODD_JUSTA_UNDER_1_5","ODD_JUSTA_OVER_2_5","ODD_JUSTA_UNDER_2_5","ODD_JUSTA_OVER_3_5","ODD_JUSTA_UNDER_3_5"]);
+      const oddsRows=normalizedCfg.filter(x=>oddsFields.has(String(x.campo||'').toUpperCase())).map(x=>({...x,fonte:'odd_config'}));
       return res.status(200).json({
-        metricas:normalizedCfg,
+        metricas:normalizedCfg.filter(x=>!oddsFields.has(String(x.campo||'').toUpperCase())),
+        odds:oddsRows,
         configs:cfg,
         campose:dbFields.length?dbFields:fallbackFields,
         fieldsSource:dbFields.length?'Banco B':'fallback oficial',
