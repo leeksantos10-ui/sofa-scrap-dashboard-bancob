@@ -432,8 +432,8 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const tiers=Array.isArray(stakeCfg?.tiers)?stakeCfg.tiers:[];
       for(const g of rows){const gh=num(g.GOLS_CASA_FT),ga=num(g.GOLS_VISITANTE_FT);if(gh===null||ga===null)continue;const won=marketMap[market].win(gh,ga),bookOdd=num(g[marketMap[market].odd]),fair=getFairOdd(g,market);const chosen=ref==='365'?bookOdd:fair;if(chosen===null||chosen<=1)continue;
         const points=stakeScores.get(Number(g.id))||0,tier=tiers.find(t=>points>=Number(t.min||0)&&points<=Number(t.max??999999)),gameStake=stakeCfg&&points>0&&tier?stake*Number(tier.percent)/100:stake;
-        const pnl=(won?(chosen-1):-1)*gameStake;profit+=pnl;if(won)greens++;oddSum+=chosen;oddN++;
-        if(fair!==null&&fair>1){fairProfit+=(won?(fair-1):-1)*gameStake;fairSum+=fair;fairN++}
+        const pnl=(won?(chosen-1):-1)*gameStake;profit+=pnl;totalStake+=gameStake;if(won)greens++;oddSum+=chosen;oddN++;
+        if(fair!==null&&fair>1){fairProfit+=(won?(fair-1):-1)*gameStake;fairStake+=gameStake;fairSum+=fair;fairN++}
         peak=Math.max(peak,profit);drawdown=Math.max(drawdown,peak-profit);curve.push({date:g.DATA,value:Number(profit.toFixed(4))});
         const month=String(g.DATA||'').slice(0,7)||'Sem data';const m=monthlyMap[month]||(monthlyMap[month]={month,entries:0,greens:0,profit:0});m.entries++;if(won)m.greens++;m.profit+=pnl;m.stake=(m.stake||0)+gameStake
       }
