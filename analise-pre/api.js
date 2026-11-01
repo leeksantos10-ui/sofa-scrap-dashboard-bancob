@@ -92,6 +92,7 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
         return item;
       });
       const filterSignature = stable({
+        evaluationVersion: 'championship-guard-v1',
         filtro: { id: filter.id, ativo: filter.ativo, campeonatos: filter.campeonatos },
         nos: [...filter.nos].sort((x,y)=>Number(x.id)-Number(y.id)),
         condicoes: [...filter.condicoes].sort((x,y)=>Number(x.id)-Number(y.id)),
