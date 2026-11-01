@@ -58,7 +58,7 @@ export function createPreAnalysisStore({request}) {
       const from=safeText(start,20),to=safeText(end,20);
       if(!confirmed) throw new Error('Exclusão cancelada: confirme a operação explicitamente.');
       if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||from>to) throw new Error('Informe um período válido.');
-      const data=await call(TABLE+'?data=gte.'+encodeURIComponent(from)+'&data=lte.'+encodeURIComponent(to),{method:'DELETE',prefer:'return=representation'});
+      const data=await call(TABLE+'?and='+encodeURIComponent('(data.gte.'+from+',data.lte.'+to+')'),{method:'DELETE',prefer:'return=representation'});
       return {deleted:Array.isArray(data)?data.length:0,start:from,end:to};
     },
     async deleteDay(day,confirmed) {
