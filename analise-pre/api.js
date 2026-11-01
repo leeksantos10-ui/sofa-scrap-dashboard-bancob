@@ -12,7 +12,7 @@ const safeId = value => {
 export function createPreAnalysisApi({ store, request, evaluateFilter }) {
   if (!store || typeof store.list !== 'function' ||
       typeof store.importRows !== 'function' ||
-      typeof store.deleteChampionship !== 'function') {
+      typeof store.deleteChampionship !== 'function' || typeof store.deleteRange !== 'function') {
     throw new TypeError('Store temporário inválido.');
   }
   if (typeof request !== 'function') throw new TypeError('Cliente de leitura do Banco B obrigatório.');
@@ -29,6 +29,7 @@ export function createPreAnalysisApi({ store, request, evaluateFilter }) {
     async deleteChampionship(name, confirmed) {
       return store.deleteChampionship(name, confirmed === true);
     },
+    async deleteRange(start,end,confirmed) { return store.deleteRange(start,end,confirmed === true); },
     async deleteDay(day, confirmed) { return store.deleteDay(day, confirmed === true); },
     async clearEvaluationsForDay(day, filterId, confirmed) { return store.clearEvaluationsForDay(day, filterId, confirmed === true); },
     async removeDuplicates(confirmed) { return store.removeDuplicates(confirmed === true); },
