@@ -28,6 +28,16 @@ function compare(left, operator, right) {
 export async function evaluateFilterTree({ game, filter, resolveMetric }) {
   if (!game || !filter) throw new TypeError('Jogo preliminar e filtro são obrigatórios.');
   if (filter.ativo === false) throw new Error('Filtro inativo não pode ser avaliado.');
+  const allowedChampionships = Array.isArray(filter.campeonatos) ? filter.campeonatos.map(value => String(value ?? '').trim()).filter(Boolean) : [];
+  const currentChampionship = String(game.campeonato ?? '').trim();
+  if (allowedChampionships.length && !allowedChampionships.includes(currentChampionship)) {
+    return {
+      passed: false,
+      reasons: ['Campeonato não permitido pelo filtro: ' + (currentChampionship || 'não informado') + '.'],
+      evaluatedRoots: 0,
+      evaluationVersion: 'championship-guard-v1'
+    };
+  }
   if (typeof resolveMetric !== 'function') throw new Error('Resolver de métricas históricas não conectado.');
   const nodes = Array.isArray(filter.nos) ? filter.nos : [];
   const conditions = Array.isArray(filter.condicoes) ? filter.condicoes : [];
