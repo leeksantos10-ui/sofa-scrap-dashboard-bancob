@@ -122,5 +122,5 @@ export async function evaluateFilterTree({ game, filter, resolveMetric }) {
   if (!roots.length) throw new Error('Árvore do filtro sem nó raiz.');
   const rootResults = [];
   for (const rootId of roots) rootResults.push(await evaluateNode(rootId));
-  return { passed: rootResults.every(Boolean), reasons, evaluatedRoots: roots.length };
+  return { passed: rootResults.every(Boolean), reasons, evaluatedRoots: roots.length, evaluationVersion: 'championship-guard-v1' };
 }
