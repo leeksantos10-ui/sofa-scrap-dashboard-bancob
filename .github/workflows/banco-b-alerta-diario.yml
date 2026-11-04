@@ -1,6 +1,12 @@
 name: Banco B - Alerta diário Análise Pré
 
 on:
+  push:
+    branches:
+      - feature/alerta-diario-analise-pre
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/banco-b-alerta-diario.yml'
   schedule:
     - cron: "0 5 * * *"
       timezone: "America/Sao_Paulo"
@@ -29,6 +35,7 @@ jobs:
       - name: Testes unitários
         run: python -m unittest discover -s scripts -p "test_*.py" -v
       - name: Gerar e enviar relatório
+        if: github.event_name != 'push'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
