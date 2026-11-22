@@ -217,19 +217,20 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       return res.status(200).json({items:Array.isArray(rows)?rows:[]});
     }
     if(action==='season_games'){
-      let season=String(p.season||'').trim();if(!season)return res.status(400).json({error:'Selecione uma temporada.'});if(season==='2025')season='72034';
+      let season=String(p.season||'').trim();const championship=String(p.championship||'').trim();if(!season)return res.status(400).json({error:'Selecione uma temporada.'});if(!championship)return res.status(400).json({error:'Selecione um campeonato.'});if(season==='2025')season='72034';
+      const champFilter='&%22CAMPEONATO%22=eq.'+encodeURIComponent(championship);
       const offset=Math.max(0,Number(p.offset)||0),limit=Math.min(100,Math.max(1,Number(p.limit)||100));
-      const rows=await get('jogos?select=id,%22DATA%22,%22CONFRONTO%22,%22CAMPEONATO%22,%22TEMPORADA%22&TEMPORADA=eq.'+encodeURIComponent(season)+'&order=%22DATA%22.desc,id.desc&limit='+limit+'&offset='+offset);
-      const count=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+'&limit=50000');
-      return res.status(200).json({items:Array.isArray(rows)?rows:[],total:Array.isArray(count)?count.length:0,offset,limit,season});
+      const rows=await get('jogos?select=id,%22DATA%22,%22CONFRONTO%22,%22CAMPEONATO%22,%22TEMPORADA%22&TEMPORADA=eq.'+encodeURIComponent(season)+champFilter+'&order=%22DATA%22.desc,id.desc&limit='+limit+'&offset='+offset);
+      const count=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+champFilter+'&limit=50000');
+      return res.status(200).json({items:Array.isArray(rows)?rows:[],total:Array.isArray(count)?count.length:0,offset,limit,season,championship});
     }
     if(action==='delete_season_games' && req.method==='POST'){
-      const seasonInput=String(p.season||'').trim();let season=seasonInput;const ids=[...new Set((Array.isArray(p.ids)?p.ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>0))];
-      if(!season)return res.status(400).json({error:'Selecione uma temporada.'});if(season==='2025')season='72034';
+      const seasonInput=String(p.season||'').trim();let season=seasonInput;const championship=String(p.championship||'').trim();const ids=[...new Set((Array.isArray(p.ids)?p.ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>0))];
+      if(!season)return res.status(400).json({error:'Selecione uma temporada.'});if(!championship)return res.status(400).json({error:'Selecione um campeonato.'});if(season==='2025')season='72034';
       if(!ids.length)return res.status(400).json({error:'Selecione pelo menos um jogo.'});if(ids.length>500)return res.status(400).json({error:'Selecione no máximo 500 jogos por vez.'});
-      const found=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+'&id=in.('+ids.join(',')+')&limit=500');
-      const validIds=(Array.isArray(found)?found:[]).map(x=>Number(x.id));if(!validIds.length)return res.status(404).json({error:'Nenhum dos jogos selecionados pertence a essa temporada.'});
-      const r=await fetch(base+'/rest/v1/jogos?TEMPORADA=eq.'+encodeURIComponent(season)+'&id=in.('+validIds.join(',')+')',{method:'DELETE',headers:{...headers,'Prefer':'return=representation'},cache:'no-store'});
+      const found=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+'&%22CAMPEONATO%22=eq.'+encodeURIComponent(championship)+'&id=in.('+ids.join(',')+')&limit=500');
+      const validIds=(Array.isArray(found)?found:[]).map(x=>Number(x.id));if(!validIds.length)return res.status(404).json({error:'Nenhum dos jogos selecionados pertence a essa temporada.'});if(validIds.length!==ids.length)return res.status(400).json({error:'Seleção inválida: um ou mais jogos não pertencem ao campeonato e temporada escolhidos. Nenhum jogo foi apagado.'});
+      const r=await fetch(base+'/rest/v1/jogos?TEMPORADA=eq.'+encodeURIComponent(season)+'&%22CAMPEONATO%22=eq.'+encodeURIComponent(championship)+'&id=in.('+validIds.join(',')+')',{method:'DELETE',headers:{...headers,'Prefer':'return=representation'},cache:'no-store'});
       const txt=await r.text();let body={};try{body=txt?JSON.parse(txt):{}}catch{body={raw:txt}}if(!r.ok)throw new Error(JSON.stringify(body));
       return res.status(200).json({ok:true,deleted:Array.isArray(body)?body.length:validIds.length,season:seasonInput,ids:validIds});
     }
@@ -239,7 +240,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       // O seletor da tela envia o valor REAL gravado em TEMPORADA.
       // Mantemos apenas a compatibilidade histórica 2025 -> 72034.
       if(season==='2025') season='72034';
-      const filter=`TEMPORADA=eq.${encodeURIComponent(season)}`;
+      const championship=String(p.championship||'').trim();if(!championship)return res.status(400).json({error:'Selecione um campeonato para exclusão.'});const filter=`TEMPORADA=eq.${encodeURIComponent(season)}&%22CAMPEONATO%22=eq.${encodeURIComponent(championship)}`;
       // Primeiro conferimos quantos registros existem exatamente para esse valor.
       const existing=await get(`jogos?select=TEMPORADA&${filter}&limit=50000`);
       const found=Array.isArray(existing)?existing.length:0;
@@ -260,10 +261,14 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       return res.status(200).json({ok:true,season,deleted,found});
     }
     if(action==='options'){
-      // Usa a mesma base completa do Banco B. O limite de 5.000 deixava
-      // campeonatos de fora do menu quando a tabela tinha mais registros.
       const data=await getAll('jogos?select=%22CAMPEONATO%22,%22TEMPORADA%22',1000,50000);
-      return res.status(200).json({championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a))});
+      const championshipSeasons=[...new Map(data.filter(x=>x.CAMPEONATO&&x.TEMPORADA).map(x=>[String(x.CAMPEONATO).trim()+'|'+String(x.TEMPORADA).trim(),{campeonato:String(x.CAMPEONATO).trim(),season:String(x.TEMPORADA).trim(),label:seasonLabel(x.TEMPORADA)}])).values()];
+      championshipSeasons.sort((a,b)=>a.campeonato.localeCompare(b.campeonato,'pt-BR')||String(b.label).localeCompare(String(a.label),'pt-BR'));
+      return res.status(200).json({
+        championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),
+        seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))],
+        championshipSeasons
+      });
     }
     if(action==='imported_competitions'){
       const data=await getAll('jogos?select=%22CAMPEONATO%22,%22TEMPORADA%22,%22DATA%22,%22criado_em%22',1000,50000);
