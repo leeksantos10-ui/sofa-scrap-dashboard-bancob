@@ -264,7 +264,11 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const data=await getAll('jogos?select=%22CAMPEONATO%22,%22TEMPORADA%22',1000,50000);
       const championshipSeasons=[...new Map(data.filter(x=>x.CAMPEONATO&&x.TEMPORADA).map(x=>[String(x.CAMPEONATO).trim()+'|'+String(x.TEMPORADA).trim(),{campeonato:String(x.CAMPEONATO).trim(),season:String(x.TEMPORADA).trim(),label:seasonLabel(x.TEMPORADA)}])).values()];
       championshipSeasons.sort((a,b)=>a.campeonato.localeCompare(b.campeonato,'pt-BR')||String(b.label).localeCompare(String(a.label),'pt-BR'));
-      return res.status(200).json({championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)),championshipSeasons});
+      return res.status(200).json({
+        championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),
+        seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)),
+        championshipSeasons
+      });
     }
     if(action==='imported_competitions'){
       const data=await getAll('jogos?select=%22CAMPEONATO%22,%22TEMPORADA%22,%22DATA%22,%22criado_em%22',1000,50000);
