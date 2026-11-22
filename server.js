@@ -229,7 +229,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       if(!season)return res.status(400).json({error:'Selecione uma temporada.'});if(!championship)return res.status(400).json({error:'Selecione um campeonato.'});if(season==='2025')season='72034';
       if(!ids.length)return res.status(400).json({error:'Selecione pelo menos um jogo.'});if(ids.length>500)return res.status(400).json({error:'Selecione no máximo 500 jogos por vez.'});
       const found=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+'&%22CAMPEONATO%22=eq.'+encodeURIComponent(championship)+'&id=in.('+ids.join(',')+')&limit=500');
-      const validIds=(Array.isArray(found)?found:[]).map(x=>Number(x.id));if(!validIds.length)return res.status(404).json({error:'Nenhum dos jogos selecionados pertence a essa temporada.'});
+      const validIds=(Array.isArray(found)?found:[]).map(x=>Number(x.id));if(!validIds.length)return res.status(404).json({error:'Nenhum dos jogos selecionados pertence a essa temporada.'});if(validIds.length!==ids.length)return res.status(400).json({error:'Seleção inválida: um ou mais jogos não pertencem ao campeonato e temporada escolhidos. Nenhum jogo foi apagado.'});
       const r=await fetch(base+'/rest/v1/jogos?TEMPORADA=eq.'+encodeURIComponent(season)+'&%22CAMPEONATO%22=eq.'+encodeURIComponent(championship)+'&id=in.('+validIds.join(',')+')',{method:'DELETE',headers:{...headers,'Prefer':'return=representation'},cache:'no-store'});
       const txt=await r.text();let body={};try{body=txt?JSON.parse(txt):{}}catch{body={raw:txt}}if(!r.ok)throw new Error(JSON.stringify(body));
       return res.status(200).json({ok:true,deleted:Array.isArray(body)?body.length:validIds.length,season:seasonInput,ids:validIds});
