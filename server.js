@@ -362,7 +362,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         : tipo==='COMPOSTA'
           ? {tipo:'COMPOSTA',operacao:String(body.operacao||'MEDIA').toUpperCase(),componentes:body.componentes.map(x=>({metrica_id:Number(x.metrica_id)}))}
           : tipo==='HISTORICA'
-            ? {tipo:'HISTORICA',indicador:String(body.formula?.indicador??body.indicador??'OVER').toUpperCase(),linha:Number(body.formula?.linha??body.linha??2.5),saida:String(body.formula?.saida??body.saida??'PERCENTUAL').toUpperCase(),equipe_alvo:String(body.formula?.equipe_alvo??body.equipe_alvo??'MANDANTE').toUpperCase()}
+            ? {tipo:'HISTORICA',indicador:String(body.formula?.indicador??body.indicador??'OVER').toUpperCase(),linha:Number(body.formula?.linha??body.linha??2.5),saida:String(body.formula?.saida??body.saida??'PERCENTUAL').toUpperCase(),gols_minimo:Number(body.formula?.gols_minimo??body.gols_minimo??1),equipe_alvo:String(body.formula?.equipe_alvo??body.equipe_alvo??'MANDANTE').toUpperCase(),gols_minimo:Number(body.formula?.gols_minimo??body.gols_minimo??1)}
             : {tipo:'NORMAL',campo};const created=await post('metricas_config',{
         nome:body.nome,descricao:body.descricao||'',campo:tipo==='COMPOSTA'?'COMPOSTA':tipo==='HISTORICA'?'HISTORICA':campo,contexto:body.contexto|| (tipo==='HISTORICA'?'GERAL':'CASA'),
         janela_jogos:Number(body.janela_jogos||5),minimo_jogos:Number(body.minimo_jogos||3),
