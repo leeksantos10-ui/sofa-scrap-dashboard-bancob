@@ -41,7 +41,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
     const output = String(formula.saida || 'PERCENTUAL').toUpperCase();
     const date = asDate(game.data ?? game.DATA);
     const teams = splitTeams(game.confronto ?? game.CONFRONTO);
-    const team = context === 'FORA' ? teams.away : teams.home;
+    const target = String(formula.equipe_alvo || (context === 'FORA' ? 'VISITANTE' : 'MANDANTE')).toUpperCase();\n    if (!['MANDANTE','VISITANTE'].includes(target)) throw new Error('Equipe-alvo histórica inválida.');\n    const team = target === 'VISITANTE' ? teams.away : teams.home;
     const fetchSide = async side => {
       const field = side === 'home' ? 'GOLS_CASA_FT' : 'GOLS_VISITANTE_FT';
       return fetchHistory({team, context: side === 'home' ? 'CASA' : 'FORA', beforeDate: date, field, limit: windowSize, select: ['DATA','CONFRONTO','GOLS_CASA_FT','GOLS_VISITANTE_FT'], readOnly: true});
