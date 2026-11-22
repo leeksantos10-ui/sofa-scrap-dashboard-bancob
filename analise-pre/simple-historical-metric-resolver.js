@@ -48,7 +48,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
     };
     const [homeRows, awayRows] = await Promise.all([context==='FORA'?Promise.resolve([]):fetchSide('home'),context==='CASA'?Promise.resolve([]):fetchSide('away')]);
     if (!Array.isArray(homeRows) || !Array.isArray(awayRows)) throw new Error('Fonte histórica retornou resposta inválida.');
-    const rows=[...homeRows.map(row=>({row,side:'home'})),...awayRows.map(row=>({row,side:'away'})))]
+    const rows=[...homeRows.map(row=>({row,side:'home'})),...awayRows.map(row=>({row,side:'away'}))]
       .filter(({row,side})=>{
         const d=String(row.DATA??row.data??'').slice(0,10), teamsRow=splitTeams(row.CONFRONTO??row.confronto);
         return d<date && (side==='home'?teamsRow?.home:teamsRow?.away)===team;
