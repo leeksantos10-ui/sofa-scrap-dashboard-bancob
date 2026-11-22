@@ -353,7 +353,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const body=JSON.parse(p.payload||'{}');
       const campo=String(body.campo||'').trim();
       const tipo=String(body.tipo||'NORMAL').toUpperCase();
-      if(!body.nome||(!campo && tipo!=='COMPOSTA')) return res.status(400).json({error:'Nome e campo são obrigatórios.'});
+      if(!body.nome||(!campo && tipo!=='COMPOSTA'&&tipo!=='HISTORICA')) return res.status(400).json({error:'Nome e campo são obrigatórios.'});
       if(tipo==='COMPOSTA' && (!Array.isArray(body.componentes)||body.componentes.length<2)) return res.status(400).json({error:'Uma métrica composta precisa de pelo menos 2 métricas.'});
       const exists=await get(`metricas_config?nome=eq.${encodeURIComponent(body.nome)}&select=id&limit=1`);
       if(exists.length) return res.status(409).json({error:'Já existe uma métrica com esse nome.'});
@@ -361,10 +361,10 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
         ? {tipo:'CUSTO_PONTO',odd:'ODD_1X2',pontuacao:{vitoria:3,empate:1,derrota:0}}
         : (tipo==='COMPOSTA'
           ? {tipo:'COMPOSTA',operacao:String(body.operacao||'MEDIA').toUpperCase(),componentes:body.componentes.map(x=>({metrica_id:Number(x.metrica_id)}))}
-          : {tipo:'NORMAL',campo});
+          : (tipo==='HISTORICA' ? {tipo:'HISTORICA',indicador:String(body.indicador||'OVER').toUpperCase(),linha:Number(body.linha??2.5),saida:String(body.saida||'PERCENTUAL').toUpperCase()} : {tipo:'NORMAL',campo}));
       // Nunca envie o campo id: no Banco B ele é identity/generated always.
       const created=await post('metricas_config',{
-        nome:body.nome,descricao:body.descricao||'',campo:tipo==='COMPOSTA'?'COMPOSTA':campo,contexto:body.contexto||'CASA',
+        nome:body.nome,descricao:body.descricao||'',campo:tipo==='COMPOSTA'?'COMPOSTA':tipo==='HISTORICA'?'HISTORICA':campo,contexto:body.contexto|| (tipo==='HISTORICA'?'GERAL':'CASA'),
         janela_jogos:Number(body.janela_jogos||5),minimo_jogos:Number(body.minimo_jogos||3),
         operacao:body.operacao||'MEDIA',ativa:true,formula
       },'POST','id,*');
@@ -388,7 +388,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       const nome=String(body.nome||'').trim();
       const tipo=String(body.tipo||'NORMAL').toUpperCase();
       const campo=String(body.campo||'').trim();
-      if(!nome||(!campo&&tipo!=='COMPOSTA')) return res.status(400).json({error:'Nome e campo são obrigatórios.'});
+      if(!nome||(!campo&&tipo!=='COMPOSTA'&&tipo!=='HISTORICA')) return res.status(400).json({error:'Nome e campo são obrigatórios.'});
       const dup=await get(`metricas_config?nome=eq.${encodeURIComponent(nome)}&id=neq.${id}&select=id&limit=1`);
       if(dup.length) return res.status(409).json({error:'Já existe outra métrica com esse nome.'});
       if(tipo==='COMPOSTA' && (!Array.isArray(body.componentes)||body.componentes.length<2)) return res.status(400).json({error:'Uma métrica composta precisa de pelo menos 2 métricas.'});
@@ -398,7 +398,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
           ? {tipo:'COMPOSTA',operacao:String(body.operacao||'MEDIA').toUpperCase(),componentes:body.componentes.map(x=>({metrica_id:Number(x.metrica_id)}))}
           : {tipo:'NORMAL',campo});
       const updated=await post(`metricas_config?id=eq.${id}`,{
-        nome,descricao:body.descricao||'',campo:tipo==='COMPOSTA'?'COMPOSTA':campo,contexto:body.contexto||'CASA',
+        nome,descricao:body.descricao||'',campo:tipo==='COMPOSTA'?'COMPOSTA':tipo==='HISTORICA'?'HISTORICA':campo,contexto:body.contexto|| (tipo==='HISTORICA'?'GERAL':'CASA'),
         janela_jogos:Number(body.janela_jogos||5),minimo_jogos:Number(body.minimo_jogos||3),
         operacao:body.operacao||'MEDIA',formula
       },'PATCH','id,*');
