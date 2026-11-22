@@ -69,8 +69,8 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       case 'VITORIA': hit=(v)=>v.teamSide==='away'?v.away>v.home:v.home>v.away; break;
       case 'EMPATE': hit=(v)=>v.home===v.away; break;
       case 'DERROTA': hit=(v)=>v.teamSide==='away'?v.away<v.home:v.home<v.away; break;
-      case 'GOLS_MARCADOS': return valid.reduce((sum,v)=>sum+(v.teamSide==='away'?v.away:v.home),0)/valid.length;
-      case 'GOLS_SOFRIDOS': return valid.reduce((sum,v)=>sum+(v.teamSide==='away'?v.home:v.away),0)/valid.length;
+      case 'GOLS_MARCADOS': { const threshold=Number(formula.gols_minimo??1); if(!Number.isInteger(threshold)||threshold<1||threshold>4)throw new Error('Critério mínimo de gols inválido (1 a 4).'); hit=(v)=>(v.teamSide==='away'?v.away:v.home)>=threshold; break; }
+      case 'GOLS_SOFRIDOS': { const threshold=Number(formula.gols_minimo??1); if(!Number.isInteger(threshold)||threshold<1||threshold>4)throw new Error('Critério mínimo de gols inválido (1 a 4).'); hit=(v)=>(v.teamSide==='away'?v.home:v.away)>=threshold; break; }
       default: throw new Error('Indicador histórico não reconhecido: '+indicator);
     }
     const count=valid.filter(hit).length;
