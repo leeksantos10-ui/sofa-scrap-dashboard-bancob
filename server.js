@@ -266,7 +266,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       championshipSeasons.sort((a,b)=>a.campeonato.localeCompare(b.campeonato,'pt-BR')||String(b.label).localeCompare(String(a.label),'pt-BR'));
       return res.status(200).json({
         championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),
-        seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)),
+        seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))],
         championshipSeasons
       });
     }
