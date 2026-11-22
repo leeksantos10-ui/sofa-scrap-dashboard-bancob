@@ -264,7 +264,7 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
       // Usa a mesma base completa do Banco B. O limite de 5.000 deixava
       // campeonatos de fora do menu quando a tabela tinha mais registros.
       const data=await getAll('jogos?select=%22CAMPEONATO%22,%22TEMPORADA%22',1000,50000);
-      return res.status(200).json({championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a))});
+      return res.status(200).json({championshipsAvailable:[...new Set(data.map(x=>x.CAMPEONATO).filter(Boolean))].sort(),seasonsAvailable:[...new Set(data.map(x=>seasonLabel(x.TEMPORADA)).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)),championshipSeasons:[...new Set(data.filter(x=>x.CAMPEONATO&&x.TEMPORADA).map(x=>JSON.stringify({campeonato:String(x.CAMPEONATO),temporada:seasonLabel(x.TEMPORADA)})))].map(x=>JSON.parse(x))});
     }
     if(action==='imported_competitions'){
       const data=await getAll('jogos?select=%22CAMPEONATO%22,%22TEMPORADA%22,%22DATA%22,%22criado_em%22',1000,50000);
