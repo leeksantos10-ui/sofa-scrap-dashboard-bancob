@@ -46,7 +46,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       const field = side === 'home' ? 'GOLS_CASA_FT' : 'GOLS_VISITANTE_FT';
       return fetchHistory({team, context: side === 'home' ? 'CASA' : 'FORA', beforeDate: date, field, limit: windowSize, select: ['DATA','CONFRONTO',field], readOnly: true});
     };
-    const [homeRows, awayRows] = await Promise.all([fetchSide('home'),fetchSide('away')]);
+    const [homeRows, awayRows] = await Promise.all([context==='FORA'?Promise.resolve([]):fetchSide('home'),context==='CASA'?Promise.resolve([]):fetchSide('away')]);
     if (!Array.isArray(homeRows) || !Array.isArray(awayRows)) throw new Error('Fonte histórica retornou resposta inválida.');
     const rows=[...homeRows.map(row=>({row,side:'home'})),...awayRows.map(row=>({row,side:'away'})))]
       .filter(({row,side})=>{
@@ -56,7 +56,7 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       .sort((a,b)=>String(b.row.DATA??b.row.data).localeCompare(String(a.row.DATA??a.row.data)))
       .slice(0,windowSize);
     if(rows.length<minimum) return null;
-    const vals=rows.map(({row})=>({home:Number(row.GOLS_CASA_FT),away:Number(row.GOLS_VISITANTE_FT)}));
+    const vals=rows.map(({row,side})=>({home:Number(row.GOLS_CASA_FT),away:Number(row.GOLS_VISITANTE_FT),teamSide:side}));
     const valid=vals.filter(v=>Number.isFinite(v.home)&&Number.isFinite(v.away));
     if(valid.length<minimum) return null;
     let hit;
@@ -65,11 +65,11 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       case 'UNDER': hit=(v)=>v.home+v.away<line; break;
       case 'BTTS_SIM': hit=(v)=>v.home>0&&v.away>0; break;
       case 'BTTS_NAO': hit=(v)=>v.home===0||v.away===0; break;
-      case 'VITORIA': hit=(v)=>context==='FORA'?v.away>v.home:v.home>v.away; break;
+      case 'VITORIA': hit=(v)=>v.teamSide==='away'?v.away>v.home:v.home>v.away; break;
       case 'EMPATE': hit=(v)=>v.home===v.away; break;
-      case 'DERROTA': hit=(v)=>context==='FORA'?v.away<v.home:v.home<v.away; break;
-      case 'GOLS_MARCADOS': return valid.reduce((sum,v)=>sum+(context==='FORA'?v.away:v.home),0)/valid.length;
-      case 'GOLS_SOFRIDOS': return valid.reduce((sum,v)=>sum+(context==='FORA'?v.home:v.away),0)/valid.length;
+      case 'DERROTA': hit=(v)=>v.teamSide==='away'?v.away<v.home:v.home<v.away; break;
+      case 'GOLS_MARCADOS': return valid.reduce((sum,v)=>sum+(v.teamSide==='away'?v.away:v.home),0)/valid.length;
+      case 'GOLS_SOFRIDOS': return valid.reduce((sum,v)=>sum+(v.teamSide==='away'?v.home:v.away),0)/valid.length;
       default: throw new Error('Indicador histórico não reconhecido: '+indicator);
     }
     const count=valid.filter(hit).length;
