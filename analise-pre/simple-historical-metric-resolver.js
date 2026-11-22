@@ -34,6 +34,49 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
   if (typeof getMetricConfig !== 'function' || typeof fetchHistory !== 'function') {
     throw new TypeError('Configuração de métrica e fonte histórica somente leitura são obrigatórias.');
   }
+  async function resolveHistoricalIndicator(config, game, context, windowSize, minimum) {
+    const formula = config.formula || {};
+    const indicator = String(formula.indicador || '').toUpperCase();
+    const line = Number(formula.linha ?? 2.5);
+    const output = String(formula.saida || 'PERCENTUAL').toUpperCase();
+    const date = asDate(game.data ?? game.DATA);
+    const teams = splitTeams(game.confronto ?? game.CONFRONTO);
+    const team = context === 'FORA' ? teams.away : teams.home;
+    const fetchSide = async side => {
+      const field = side === 'home' ? 'GOLS_CASA_FT' : 'GOLS_VISITANTE_FT';
+      return fetchHistory({team, context: side === 'home' ? 'CASA' : 'FORA', beforeDate: date, field, limit: windowSize, select: ['DATA','CONFRONTO',field], readOnly: true});
+    };
+    const [homeRows, awayRows] = await Promise.all([fetchSide('home'),fetchSide('away')]);
+    if (!Array.isArray(homeRows) || !Array.isArray(awayRows)) throw new Error('Fonte histórica retornou resposta inválida.');
+    const rows=[...homeRows.map(row=>({row,side:'home'})),...awayRows.map(row=>({row,side:'away'})))]
+      .filter(({row,side})=>{
+        const d=String(row.DATA??row.data??'').slice(0,10), teamsRow=splitTeams(row.CONFRONTO??row.confronto);
+        return d<date && (side==='home'?teamsRow?.home:teamsRow?.away)===team;
+      })
+      .sort((a,b)=>String(b.row.DATA??b.row.data).localeCompare(String(a.row.DATA??a.row.data)))
+      .slice(0,windowSize);
+    if(rows.length<minimum) return null;
+    const vals=rows.map(({row})=>({home:Number(row.GOLS_CASA_FT),away:Number(row.GOLS_VISITANTE_FT)}));
+    const valid=vals.filter(v=>Number.isFinite(v.home)&&Number.isFinite(v.away));
+    if(valid.length<minimum) return null;
+    let hit;
+    switch(indicator){
+      case 'OVER': hit=(v)=>v.home+v.away>line; break;
+      case 'UNDER': hit=(v)=>v.home+v.away<line; break;
+      case 'BTTS_SIM': hit=(v)=>v.home>0&&v.away>0; break;
+      case 'BTTS_NAO': hit=(v)=>v.home===0||v.away===0; break;
+      case 'VITORIA': hit=(v)=>context==='FORA'?v.away>v.home:v.home>v.away; break;
+      case 'EMPATE': hit=(v)=>v.home===v.away; break;
+      case 'DERROTA': hit=(v)=>context==='FORA'?v.away<v.home:v.home<v.away; break;
+      case 'GOLS_MARCADOS': return valid.reduce((sum,v)=>sum+(context==='FORA'?v.away:v.home),0)/valid.length;
+      case 'GOLS_SOFRIDOS': return valid.reduce((sum,v)=>sum+(context==='FORA'?v.home:v.away),0)/valid.length;
+      default: throw new Error('Indicador histórico não reconhecido: '+indicator);
+    }
+    const count=valid.filter(hit).length;
+    if(output==='CONTAGEM') return count;
+    if(output==='PERCENTUAL') return count/valid.length*100;
+    throw new Error('Saída de indicador deve ser PERCENTUAL ou CONTAGEM.');
+  }
   async function resolveOne(metricId, game, stack = new Set()) {
     const id = idOf(metricId);
     if (stack.has(id)) throw new Error('Ciclo detectado na fórmula da métrica ' + id);
@@ -59,6 +102,12 @@ export function createSimpleHistoricalMetricResolver({ getMetricConfig, fetchHis
       if (compoundOperation === 'SUBTRACAO') return values.slice(1).reduce((value, item) => value - item, values[0]);
       if (compoundOperation === 'MULTIPLICACAO') return values.reduce((value, item) => value * item, 1);
       throw new Error('Operação de métrica composta não suportada: ' + compoundOperation);
+    }
+    if (formulaType === 'HISTORICA') {
+      const ctx=String(config.contexto||'GERAL').toUpperCase();
+      const win=Number(config.janela_jogos||10), min=Number(config.minimo_jogos||5);
+      if(!['CASA','FORA','GERAL'].includes(ctx)||!Number.isSafeInteger(win)||win<1||win>100||!Number.isSafeInteger(min)||min<1||min>win) throw new Error('Configuração de métrica histórica inválida.');
+      return resolveHistoricalIndicator(config,game,ctx,win,min);
     }
     const context = String(config.contexto ?? '').toUpperCase();
     const operation = String(config.operacao ?? '').toUpperCase();
