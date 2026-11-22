@@ -41,7 +41,9 @@ export function createSupabaseHistoricalProvider({request}) {
     const n=Number(limit);
     if(!Number.isSafeInteger(n)||n<1||n>100) throw new Error('Limite histórico inválido.');
     const pattern=String(context).toUpperCase()==='CASA' ? `%${team} x %` : `% x ${team}`;
-    const path='jogos?select='+['id','"DATA"','"CONFRONTO"',`"${field}"`].map(quote).join(',')+
+    const selectedFields = ['id','"DATA"','"CONFRONTO"',`"${field}"`];
+    if(field==='GOLS_CASA_FT'||field==='GOLS_VISITANTE_FT') selectedFields.push('"GOLS_CASA_FT"','"GOLS_VISITANTE_FT"');
+    const path='jogos?select='+selectedFields.map(quote).join(',')+
       '&%22DATA%22=lt.'+quote(dateOnly(beforeDate))+
       '&%22CONFRONTO%22=ilike.'+quote(pattern)+
       '&%22'+field+'%22=not.is.null&order='+quote('"DATA"')+'.desc,'+quote('id')+'.desc&limit='+n;
@@ -58,7 +60,9 @@ export function createSupabaseHistoricalProvider({request}) {
     // read-only query and match the team locally. This avoids false 'no history'
     // results caused by punctuation, whitespace, or URL pattern differences.
     if(matches.length<n){
-      const fallbackPath='jogos?select='+['id','\"DATA\"','\"CONFRONTO\"', '\"'+field+'\"'].map(quote).join(',')+
+      const fallbackFields=['id','\"DATA\"','\"CONFRONTO\"', '\"'+field+'\"'];
+      if(field==='GOLS_CASA_FT'||field==='GOLS_VISITANTE_FT') fallbackFields.push('\"GOLS_CASA_FT\"','\"GOLS_VISITANTE_FT\"');
+      const fallbackPath='jogos?select='+fallbackFields.map(quote).join(',')+
         '&%22DATA%22=lt.'+quote(dateOnly(beforeDate))+
         '&%22'+field+'%22=not.is.null&order='+quote('\"DATA\"')+'.desc,'+quote('id')+'.desc&limit=5000';
       const fallback=await request(fallbackPath);
