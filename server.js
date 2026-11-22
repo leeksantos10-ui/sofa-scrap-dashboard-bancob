@@ -220,8 +220,8 @@ function fairPnl(j,market,stake=1,commission=.045){const f=fairOdd(j,market);con
     if(action==='season_games'){
       let season=String(p.season||'').trim(),championship=String(p.championship||'').trim();if(!season)return res.status(400).json({error:'Selecione uma temporada.'});if(season==='2025')season='72034';const champFilter=championship?'&CAMPEONATO=eq.'+encodeURIComponent(championship):'';
       const offset=Math.max(0,Number(p.offset)||0),limit=Math.min(100,Math.max(1,Number(p.limit)||100));
-      const rows=await get('jogos?select=id,%22DATA%22,%22CONFRONTO%22,%22CAMPEONATO%22,%22TEMPORADA%22&TEMPORADA=eq.'+encodeURIComponent(season)+'+champFilter+'&order=%22DATA%22.desc,id.desc&limit='+limit+'&offset='+offset);
-      const count=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+'+champFilter+'&limit=50000');
+      const rows=await get('jogos?select=id,%22DATA%22,%22CONFRONTO%22,%22CAMPEONATO%22,%22TEMPORADA%22&TEMPORADA=eq.'+encodeURIComponent(season)+champFilter+'&order=%22DATA%22.desc,id.desc&limit='+limit+'&offset='+offset);
+      const count=await get('jogos?select=id&TEMPORADA=eq.'+encodeURIComponent(season)+champFilter+'&limit=50000');
       return res.status(200).json({items:Array.isArray(rows)?rows:[],total:Array.isArray(count)?count.length:0,offset,limit,season});
     }
     if(action==='delete_season_games' && req.method==='POST'){
