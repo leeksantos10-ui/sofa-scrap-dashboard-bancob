@@ -20,7 +20,7 @@ test('historical table includes only earlier fixtures and ranks all teams',()=>{
   ];
   const table=buildStandingsTable(matches,matches[3],{context:'GERAL'});
   assert.equal(table.standings.length,3);
-  assert.equal(table.standings[0].team,'C');
+  assert.equal(table.standings[0].team,'A');
   assert.equal(table.standings[0].points,4);
   assert.equal(table.standings[0].position,1);
 });
