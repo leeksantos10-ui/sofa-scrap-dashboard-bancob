@@ -1,1 +1,12 @@
-{"name":"sofa-scrap-dashboard-bancob","version":"1.0.0","type":"module","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}
+{
+  "name": "sofa-scrap-dashboard-bancob",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
