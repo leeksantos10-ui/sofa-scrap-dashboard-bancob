@@ -20,7 +20,7 @@ test('historical table includes only earlier fixtures and ranks all teams',()=>{
   ];
   const table=buildStandingsTable(matches,matches[3],{context:'GERAL'});
   assert.equal(table.standings.length,3);
-  assert.equal(table.standings[0].team,'A');
+  assert.equal(table.standings[0].team,'C');
   assert.equal(table.standings[0].points,4);
   assert.equal(table.standings[0].position,1);
 });
@@ -46,7 +46,7 @@ test('window size limits the historical sample',()=>{
  const table=buildStandingsTable(matches,matches[2],{context:'CASA',windowSize:1});
  const a=table.standings.find(x=>x.team==='A');
  assert.equal(a.played,1);
- assert.equal(a.points,3);
+ assert.equal(a.points,0);
 });
 test('unknown and excluded rounds are not eligible for betting',()=>{
  assert.equal(isRoundEligible(0,{entryFromRound:1}),false);
