@@ -16,7 +16,7 @@ test('importação valida e grava em lotes',async()=>{
  const store=createPreAnalysisStore({request:async(path,options={})=>{calls.push({path,options});return {ok:true,data:options.body||[]}}});
  const result=await store.importRows([{confronto:'A x B',campeonato:'Liga'}]);
  assert.equal(result.inserted,1);
- assert.equal(calls[0].path,'pre_analysis_games');
+ assert.equal(calls.find(c=>c.options.method==='POST').path,'pre_analysis_games');
  assert.equal(calls[0].options.method,'POST');
  assert.equal(calls[0].options.body[0].status,'pendente');
 });
