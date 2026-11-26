@@ -8,7 +8,7 @@ function fixture(overrides={}, filterActive=true) {
   const store={
     list:async()=>games,
     importRows:async rows=>({inserted:rows.length}),
-    deleteChampionship:async(name,confirmed)=>({deleted:confirmed?1:0,campeonato:name}),
+    deleteChampionship:async(name,confirmed)=>({deleted:confirmed?1:0,campeonato:name}),\n    deleteRange:async()=>({deleted:0}),\n    saveEvaluation:async()=>({persisted:true}),
     ...overrides.store
   };
   const request=async path=> {
