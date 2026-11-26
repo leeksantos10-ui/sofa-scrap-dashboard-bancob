@@ -67,7 +67,7 @@ export function createSupabaseHistoricalProvider({request}) {
         '&%22'+field+'%22=not.is.null&order='+quote('\"DATA\"')+'.desc,'+quote('id')+'.desc&limit=5000';
       const fallback=await request(fallbackPath);
       if(!Array.isArray(fallback)) throw new Error('A consulta histórica alternativa retornou resposta inválida.');
-      matches=exactTeamRows([...result,...fallback]);
+      matches=exactTeamRows(fallback);
     }
     return matches
   };
