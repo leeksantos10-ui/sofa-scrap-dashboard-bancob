@@ -126,5 +126,12 @@ export function validatePreliminaryRows(rows) {
     });
   }
   if(!clean.length) throw new Error('Não restaram jogos válidos após a validação.');
-  return clean;
+  // Dedup by normalized date, competition, and confrontation; keep the first occurrence.
+  const normalizeKey=value=>String(value??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim().toLowerCase().replace(/\\s+/g,' ');
+  const seen=new Set();
+  return clean.filter(row=>{
+    const key=[row.data,row.campeonato,row.confronto].map(normalizeKey).join('|');
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 }
